@@ -184,14 +184,16 @@ class PublishRecoveryTests(unittest.TestCase):
         self.original = {'root_path': str(self.root), 'draft_ids': 7,
                          'all_draft_store': [{'draft_id': 'existing', 'draft_name': 'untouched'}]}
         j.write(self.root / 'root_meta_info.json', self.original)
-        self.record = {'runtime_profile': 'test-profile', 'target': str(self.target), 'draft_id': 'new-id',
+        test_profile = 'jy14-headless-macos-11.4.2'
+        self.record = {'runtime_profile': test_profile, 'target': str(self.target), 'draft_id': 'new-id',
                        'files': j.files_manifest(self.out / 'draft')}
         helper = SimpleNamespace(
-            _validate_runtime_environment=lambda: {'runtime_profile': 'test-profile'},
+            _validate_runtime_environment=lambda: {'runtime_profile': test_profile},
             _ensure_editor_closed=lambda _: None, _decrypt_metadata_in_memory=j.read_json,
             **{name: getattr(runtime_io, name) for name in (
                 '_snapshot_file', '_parse_strict_json', '_revalidate_snapshot',
                 '_acquire_directory_transaction_lock', '_release_directory_transaction_lock')})
+        self.helper = helper
         for context in (patch.object(j.nd, 'DRAFT_ROOT', self.root),
                         patch.object(j.nd, 'helper', return_value=helper),
                         patch.object(j, 'read_xattrs', return_value={}),
@@ -217,6 +219,15 @@ class PublishRecoveryTests(unittest.TestCase):
         self.assertEqual(self.failure('denied')['recovery'], 'publish-after-fixing-cause')
         self.assertTrue(Path(self.failure('denied')['temporary_index']).is_file())
         self.assertEqual(self.publish('retry')['status'], 'created')
+
+    def test_publish_capability_is_enforced_before_live_write(self):
+        self.helper._validate_runtime_environment = lambda: {
+            'runtime_profile': 'jy14-headless-macos-11.4.0'
+        }
+        with self.assertRaisesRegex(ValueError, 'capability publish'):
+            self.publish('capability-denied')
+        self.assertFalse(self.target.exists())
+        self.assertFalse((self.folder / 'capability-denied').exists())
 
     def test_commit_failure_resumes_once_and_preserves_other_entries(self):
         with patch.object(j.os, 'replace', side_effect=OSError('injected commit failure')):

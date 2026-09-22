@@ -27,7 +27,7 @@ import native_resources as resources
 import native_effects as effects
 import native_visual_effects as visual_effects
 import native_fonts as fonts
-from runtime_profiles import validate_timeline_schema
+from runtime_profiles import require_capability, validate_timeline_schema
 
 HERE = Path(__file__).resolve().parent
 BLUEPRINT_SHA = '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9'
@@ -362,6 +362,7 @@ def files_manifest(folder):
 
 def build(plan_path, out):
     runtime = nd.doctor()
+    require_capability(runtime['runtime_profile'], 'draft_create')
     plan = read_json(plan_path)
     assets, duration, font_assets = validate_plan(plan)
     bp = blueprint()
@@ -647,6 +648,7 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
     record = verify_build_fn(out)
     h = nd.helper()
     runtime = h._validate_runtime_environment()
+    require_capability(runtime['runtime_profile'], 'publish')
     require(record.get('runtime_profile') == runtime['runtime_profile'],
             'Build runtime differs; create a fresh isolated build with the current profile')
     h._ensure_editor_closed(True)
@@ -742,6 +744,8 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
 
 
 def verify_live(out):
+    runtime = nd.doctor()
+    require_capability(runtime['runtime_profile'], 'verify')
     out = Path(out).resolve(strict=True)
     record = read_json(out / 'build.json')
     require(record.get('runtime_manifest') == nd.MANIFEST_SHA and record.get('blueprint_sha256') == BLUEPRINT_SHA,
@@ -757,7 +761,7 @@ def verify_live(out):
     require(timeline['id'] == record['timeline_id'] and metadata['draft_id'] == record['draft_id'], 'Draft identity changed')
     native_resource_bindings = verify_structure(timeline, metadata, plan, record['assets'], target,
                                                allow_native_resource_cache=True,
-                                               runtime_profile=nd.doctor()['runtime_profile'],
+                                               runtime_profile=runtime['runtime_profile'],
                                                font_assets=font_assets or ())
     project = read_json(target / 'Timelines/project.json')
     require(project['main_timeline_id'] == timeline['id'], 'Project/timeline reference changed')

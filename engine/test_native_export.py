@@ -246,6 +246,15 @@ class ExportGuards(unittest.TestCase):
                 e.run(self.folder, out)
         self.assertFalse(out.exists())
 
+    def test_build481_native_export_remains_disabled_without_abi_evidence(self):
+        out = self.root / 'build481-must-not-export'
+        timeline = {'materials': {}}
+        record = {'runtime_profile': 'jy14-headless-macos-11.4.0-build481'}
+        with patch.object(e, 'verified_build', return_value=(self.folder, record, timeline)):
+            with self.assertRaisesRegex(ValueError, 'ABI evidence is incomplete'):
+                e.run(self.folder, out)
+        self.assertFalse(out.exists())
+
     def test_changed_light_shake_resource_is_not_staged(self):
         out = self.root / 'output'; out.mkdir()
         relative = Path('Resources/headless-native/forged-effect')

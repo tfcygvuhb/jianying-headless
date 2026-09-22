@@ -4,7 +4,7 @@
 
 - 入口：本 Skill 的 `scripts/headless_draft.py`。代码位于单独检出的 Jianying Headless 项目 `engine/`；独立安装 Skill 时设置 `JIANYING_HEADLESS_ROOT`，入口核验代码与蓝图 SHA-256。
 - 应用：`/Applications/VideoFusion-macOS.app`；目标根为当前用户 `Movies/JianyingPro/User Data/Projects/com.lveditor.draft`。
-- 精确 runtime profile：11.5.0 为主版本，11.4.2 为兼容版本；11.4.0 仅保留历史草稿配置。各自固定 version、build、bundle ID 与 libvideoeditor hash；写 live 前核验完整深度签名及 Team ID。未列入的版本会拒绝，不改旧组件的常量。
+- 精确 runtime profile：11.5.0 为主版本，11.4.2 为兼容版本；11.4.0 历史配置保持禁用。另有精确 `11.4.0 Build 481` 离线草稿预览档案，只开放 `draft_create` 与结构检查；首页登记、已有工程编辑、原生资源和原生 MP4 导出继续拒绝。各档案固定 version、build、bundle ID、Team ID、完整签名与 libvideoeditor hash；未列入的版本会拒绝，不改旧组件的常量。
 - 历史本机验收包含 11.4.0 / 11.4.2 的 6 秒、6 轨草稿：视频切片、混合速度、画中画、字幕、标题、WAV BGM 和 MP3 音效。原生打开、播放、保存、退出和冷重开均有分项记录；私人工作目录及原始证据不随源码分发，见下方验证说明。
 - 草稿 build/publish 入口没有调用网络、ASR、视频导出或在线资源下载。用户明确要求成片时另用 [export-macos.md](export-macos.md)；任意本地音频可以导入，但音频格式仍须在剪映中验收；实测源编码为 H.264/AAC、WAV、MP3。HEVC 在输入白名单，尚未在本次新建链路单独验收。
 - 11.4.2 的 25 fps、12 度旋转画中画、同一主轨混合不同视频、彩色标题及描边均已完成实际显示、播放和冷重开回读。其他帧率和编码仍需按实际项目验收，不能把一个样例视为所有组合均已验证。

@@ -24,7 +24,9 @@ python3 /absolute/path/to/yichen-jianying-edit/scripts/headless_draft.py doctor
 
 Apple Silicon macOS、Python 3.9+、FFmpeg / ffprobe、Xcode 编译工具，以及匹配版本的
 原版剪映。11.5.0 为主版本，11.4.2 为兼容版本，两者支持草稿和原生导出；
-11.4.0 仅保留历史草稿配置。导出快照必须与当前运行版本一致。
+普通 11.4.0 仅保留历史草稿配置。精确的 11.4.0 Build 481 预览档案只开放
+离线新建草稿与结构检查，不开放首页登记、已有工程编辑、原生资源或原生导出。
+导出快照必须与当前运行版本一致。
 精确工具链和哈希限制见核心项目说明；这不是任意 Mac/任意剪映版本的兼容承诺。
 
 剪辑计划可以直接由用户或 Agent 提供，不强制使用付费 ASR。`asr_once.py` 仅是可选

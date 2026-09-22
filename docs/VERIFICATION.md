@@ -1,5 +1,24 @@
 # 验证状态
 
+## 2026-09-23：11.4.0 Build 481 离线草稿预览档案
+
+本节只记录一台 Apple Silicon Mac 上的精确构建，不泛化到其他 11.4.0 build。
+
+| 检查 | 结果与范围 |
+| --- | --- |
+| 运行身份 | `11.4.0`、Build `481`、Bundle ID、Team ID、完整签名与 `libvideoeditor` SHA 精确匹配 |
+| 工具链与桥接 | Apple clang 21.0.0 / SDK 26.5 / linker 1267；独立 codec 两次构建字节一致并固定 SHA |
+| 离线草稿 | 4 秒合成 H.264/AAC + WAV，主轨裁切、两段拼接、1.5 倍速、两段可编辑文字和 BGM；`build`、`verify-build` 通过，源素材未变 |
+| 授权真实素材离线草稿 | 用户明确授权的 HEVC/AAC 视频与 JPEG 照片，8 秒主轨、照片画中画和两段可编辑文字；`build`、`verify-build` 通过，两个源文件哈希均未变化 |
+| 真实素材 UI | 用户明确授权的 HEVC/AAC 视频与 JPEG 照片由 Codex UI 自动化导入独立测试工程，均加入时间线并实际播放；不属于无界面 publish 证据 |
+| 首页登记 | 未通过。当前 TCC 草稿根的新暂存索引自然增加 `com.apple.macl` 与 `com.apple.provenance`，现有保全规则拒绝；索引未替换、目标草稿未放置 |
+| 原生导出 | 未启用。静态分析无法唯一证明恢复入口、导出请求构造、对象大小、成员偏移与完成/错误回调 ABI |
+| 能力门禁 | `draft_create=true`、`verify=true`；`publish`、`existing_edit`、`native_export`、`native_resources` 均为 false |
+| 自动化检查 | 仓库回归、源码包装检查、Python 语法检查与 Build 481 导出 fail-closed 专项通过；系统 `sandbox-exec` 拒绝策略有一项环境差异，未作为 Build 481 放行依据 |
+
+失败发布审计、测试素材、草稿、日志和 codec 二进制只保留在本机忽略目录，不加入仓库。
+未关闭 SIP/TCC、未删除安全属性、未修改剪映应用，也未用 UI 测试代替无界面首页登记。
+
 ## 2026-09-20：Issue 优化与真实 IG 字体验收
 
 本节记录维护环境的本地验证；是否已发布以仓库提交为准，Issue 和 PR 状态以 GitHub 页面为准。

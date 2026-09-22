@@ -17,7 +17,7 @@ import time
 import jy14_headless as j
 import native_compound as compound
 import native_fonts as fonts
-from runtime_profiles import validate_timeline_schema, saved_schema_upgrade
+from runtime_profiles import require_capability, validate_timeline_schema, saved_schema_upgrade
 
 SCHEMA = 'jy14-edit-plan/v1'
 BUILD_SCHEMA = 'jy14-edit-build/v1'
@@ -712,6 +712,8 @@ def main():
         else:
             p.add_argument('--report')
     args = parser.parse_args()
+    runtime = j.nd.doctor()
+    require_capability(runtime['runtime_profile'], 'existing_edit')
     if args.command == 'inspect':
         result = inspect(args.draft, args.out)
     elif args.command == 'build':

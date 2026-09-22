@@ -27,6 +27,22 @@ from runtime_profiles import EXPORT_PROFILES, validate_export_profiles
 HERE = Path(__file__).resolve().parent
 SCHEMA = 'jy14-native-export/v1'
 
+# Build 481 has not passed the native ABI evidence gate.  Keep this guard in
+# the export layer as a second fail-closed boundary; runtime profile data is
+# intentionally maintained elsewhere and must not be treated as proof that a
+# native renderer is safe to call.
+UNVERIFIED_NATIVE_EXPORT_PROFILES = frozenset({
+    'jy14-headless-macos-11.4.0-build481',
+})
+
+
+def require_verified_native_abi(profile_id):
+    if profile_id in UNVERIFIED_NATIVE_EXPORT_PROFILES:
+        raise ValueError(
+            'Native export is disabled for %s: restore_draft, '
+            'export_constructor, request_size, mask_hub, and completion '
+            'callback ABI evidence is incomplete' % profile_id)
+
 
 def captured_mask(node):
     """Only the six captured static mask identities and parameter kinds."""
@@ -427,6 +443,7 @@ def validate_probe(info, settings, duration_us, audio_expected):
 
 def run(build, out, bitrate=4_000_000, timeout=600):
     build, record, timeline = verified_build(build)
+    require_verified_native_abi(record.get('runtime_profile'))
     capabilities = supported_features(timeline)
     settings = settings_for(timeline, bitrate, timeout)
     job = Path(out)

@@ -23,6 +23,30 @@ class RuntimeProfiles(unittest.TestCase):
         self.assertEqual(profiles.PROFILES['11.4.2'],
                          '632c8ddd09ff4a54f876cd8142eb505055ee26d944199506b230949b7e106bd1')
 
+    def test_build481_is_a_distinct_exact_draft_only_profile(self):
+        profile = profiles.RUNTIME_IDENTITIES[profiles.PROFILE_1140_BUILD481]
+        info = {'CFBundleShortVersionString': '11.4.0', 'CFBundleVersion': '481',
+                'CFBundleIdentifier': 'com.lemon.lvpro'}
+        self.assertEqual(profiles.resolve_identity(
+            info, profile['library_sha256'], 'X2JNK7LY8J')['app_version'], '11.4.0')
+        self.assertEqual(profile['profile_id'], 'jy14-headless-macos-11.4.0-build481')
+        self.assertEqual(profile['capabilities'], {
+            'draft_create': True, 'publish': False, 'verify': True,
+            'existing_edit': False, 'native_export': False, 'native_resources': False,
+        })
+        self.assertNotIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
+        with self.assertRaises(ValueError):
+            profiles.resolve_identity(
+                dict(info, CFBundleVersion='482'), profile['library_sha256'], 'X2JNK7LY8J')
+        with self.assertRaises(ValueError):
+            profiles.resolve_identity(info, profiles.PROFILES['11.4.0'], 'X2JNK7LY8J')
+        with self.assertRaises(ValueError):
+            profiles.resolve_identity(info, profile['library_sha256'], 'com.other')
+        self.assertEqual(
+            profiles.codec_for_profile(profiles.PROFILE_1140_BUILD481),
+            ('jy14_codec_hardened_11_4_0_build481',
+             'f6f49c718c740dae77fe1525b2762fc1801951ec6bf5eb223156842529123947'))
+
     def test_mismatched_hash_build_bundle_and_unknown_version_rejected(self):
         for version in ('11.5.0','11.4.2'):
             h=profiles.PROFILES[version]
@@ -42,6 +66,9 @@ class RuntimeProfiles(unittest.TestCase):
         for a,b in [('11.4.2','11.5.0'),('11.5.0','11.4.2'),('11.4.0','11.4.0'),('11.5.1','11.5.1')]:
             with self.subTest(a=a,b=b),self.assertRaises(ValueError):
                 profiles.validate_export_profiles(profiles.PROFILE_PREFIX+a,profiles.PROFILE_PREFIX+b)
+        with self.assertRaisesRegex(ValueError, 'capability'):
+            profiles.validate_export_profiles(profiles.PROFILE_1140_BUILD481,
+                                              profiles.PROFILE_1140_BUILD481)
 
     def test_resource_pairing_keeps_capture_provenance(self):
         for p in profiles.EXPORT_PROFILES:
@@ -56,8 +83,9 @@ class RuntimeProfiles(unittest.TestCase):
         new = {'new_version':'187.0.0','version':360000}
         for version in ('11.4.0','11.4.2','11.5.0'):
             profiles.validate_timeline_schema(old,profiles.PROFILE_PREFIX+version)
+        profiles.validate_timeline_schema(old, profiles.PROFILE_1140_BUILD481)
         profiles.validate_timeline_schema(new,profiles.PROFILE_PREFIX+'11.5.0')
-        for version in ('11.4.0','11.4.2','11.5.1'):
+        for version in ('11.4.0','11.4.2','11.5.1', '11.4.0-build481'):
             with self.assertRaises(ValueError):
                 profiles.validate_timeline_schema(new,profiles.PROFILE_PREFIX+version)
         for bad in [dict(new,new_version='188.0.0'),dict(new,version=360001),dict(new,version=360000.0)]:

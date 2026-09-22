@@ -33,8 +33,8 @@ PROJECT_ROOT = project_root()
 BACKEND = PROJECT_ROOT / 'engine'
 PINS = {
     'native_fonts.py': 'ddd7b4c1ecd55890bd645c14930f2c5f6687794691c2280daa32673e048da5e6',
-    'runtime_profiles.py': 'f285ddf16d5ad381a9165becc443dd11352663bdb28a1b5d7eccd31b2cd6209e',
-    'jy14_headless.py': '3240e4d6124a7e313e1a7ceb2542752378caefeea8f3349576b84cc9da33ecb9',
+    'runtime_profiles.py': '7d3a92d0bb5e2bc4f79f9c5e7c1b2092f48dc4641d8e6092c07d555b5106aff9',
+    'jy14_headless.py': '9ceb87a830cc300fb72b6c2f48457d1f493c995732c50968e9656364339b29ad',
     'native_motion.py': '5d743caaa38c921779166e5663d36f72a0c3fdb130a690ac3942a7adcf62d6c2',
     'native_effects.py': 'c46b2fc9221dd613f220564b752e532f8f3753dd5595aaffc24f41d5236e4e97',
     'native_resources.py': '9bddfbb1cd688cebd69ac49f9bbf63c242522d9666a2ef7b412fe097113f68f2',
@@ -42,10 +42,10 @@ PINS = {
     'native-resource-catalog.json': '97af2df27463a9183fb1aa8f2ef534b37a644cb196f340fe88fdc50b456abde9',
     'native_compound.py': 'eb9e7d5544e1726be291912c47a5cc917b80180a231242ca30b7b5aaf68f5bfc',
     'compound-blueprint.json': '9cba9435053280abf9072d5eaccb8586c841b11dac6854b32daf9cbdba76af8e',
-    'native_edit.py': '290d9e2f92a848f05bb6634778f93d56c0a2dad29524edd4f088d352aa4a6675',
-    'native_export.py': 'bf693c057e177be1e0d7e14e7b4692b546af04d6e40910b151089c5f0713e430',
+    'native_edit.py': '3b7c7fe682436b83288e96a901089b080cc6d1e6913d78a71ab74a6ace124a83',
+    'native_export.py': '380338e5946465c89cd89a31473fca5365807153245594e75d931fdfad2e90c8',
     'native_export.cpp': 'c60da6c65f5bb7ac733b8f5b619401be3921f9254b953a55903d4e7566156379',
-    'headless_runtime.py': '81d75135473eb531688099b45a5a2acf922b4c385a8feaf39f0c92963b46ccca',
+    'headless_runtime.py': '11fbafd1cd366c895271e1ce4b854daf8d334cbaead5fadde7d718634f3aa441',
     'blueprint.json': '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9',
 }
 
@@ -55,11 +55,24 @@ for name, expected in PINS.items():
         raise SystemExit('Headless component changed or unavailable; reverify before updating the pin: ' + name)
 
 sys.path.insert(0, str(BACKEND))
+
+
+def require_runtime_capability(capability):
+    """Gate wrapper-only operations before loading a mutating engine entrypoint."""
+    import headless_runtime
+    runtime = headless_runtime.doctor()
+    if runtime.get('capabilities', {}).get(capability) is not True:
+        raise SystemExit('Runtime profile %s does not enable capability %s' %
+                         (runtime.get('runtime_profile', '<unknown>'), capability))
+
+
 entrypoint = 'jy14_headless.py'
 if len(sys.argv) > 1 and sys.argv[1] == 'edit':
+    require_runtime_capability('existing_edit')
     entrypoint = 'native_edit.py'
     del sys.argv[1]
 elif len(sys.argv) > 1 and sys.argv[1] == 'export':
+    require_runtime_capability('native_export')
     entrypoint = 'native_export.py'
     del sys.argv[1]
 runpy.run_path(str(BACKEND / entrypoint), run_name='__main__')
