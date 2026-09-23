@@ -44,7 +44,7 @@ PINS = {
     'compound-blueprint.json': '9cba9435053280abf9072d5eaccb8586c841b11dac6854b32daf9cbdba76af8e',
     'native_edit.py': '377c4ff886be5093cc08415e42ebe7d5669c04b30509ffd5a2695e5d1225b5eb',
     'native_export.py': '380338e5946465c89cd89a31473fca5365807153245594e75d931fdfad2e90c8',
-    'native_export.cpp': '29261a68803942094a49c6c7637b59523113067e15dc5508dee5d016014a3083',
+    'native_export.cpp': '6529cd56fdea5072558d33d1cee3fcbecc2bc47a4aee6f7487002819c593e570',
     'headless_runtime.py': '9925bd53c2cfc40844516aa3242a2cfb455843088d35bff53df5a9b123108443',
     'blueprint.json': '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9',
 }

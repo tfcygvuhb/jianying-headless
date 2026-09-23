@@ -103,11 +103,14 @@ static const NativeAbi abi_profiles[] = {
   {"11.4.2", "632c8ddd09ff4a54f876cd8142eb505055ee26d944199506b230949b7e106bd1",
    0x21234d0, 0x2681f98, 0x3d8, 0x7e8, 669,
    "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
-  // Build 481 arm64 - pending LLDB/Ghidra to trace exportStart dispatch chain.
-  // ADRP scan found the callback log handler (0x2049dc4) but NOT the real
-  // restore entry point. export_constructor=0x1148290 tentative.
+  // Build 481 arm64 - pending correct restore_draft dispatch address.
+  // Ghidra confirmed export_constructor=0x1148290 (ExportStartReqStruct ctor).
+  // exportStart (0x103548) is the outer C++ method with signature
+  // (shared_ptr<ExportStartReqStruct>, function, bool, long); it is NOT
+  // callable as (long,bool,long). The DraftService restore_draft dispatch
+  // entry needs a packed req + callback ABI, not the legacy three-arg call.
   // {"11.4.0-build481", "aea79715de6097394c2f38153e11565f02a823678801cd1eafe90bcccb20c086",
-  //  0x2049dc4, 0x1148290, 0x3d8, 0x7e8, 669,
+  //  0x103548, 0x1148290, 0x3d8, 0x7e8, 669,
   //  "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
 };
 static const NativeAbi* active_abi = nullptr;
