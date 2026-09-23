@@ -685,6 +685,7 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
         updated['draft_ids'] = integer(original['draft_ids'], 'draft_ids') + 1
         payload = nd.packed(updated)
         temporary = root.path.parent / ('.root_meta_info.headless-' + uuid.uuid4().hex + '.tmp')
+        phase = 'index_staging'
         write(temporary, payload)
         os.chmod(temporary, root.mode)
         staged_xattrs, os_attribute_changes = copy_xattrs(xattrs, temporary, audit)

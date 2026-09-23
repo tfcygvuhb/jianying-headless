@@ -14,7 +14,7 @@ import shutil
 import subprocess
 import sys
 from types import SimpleNamespace
-from runtime_profiles import PRIMARY_VERSION, RUNTIME_IDENTITIES, resolve_identity
+from runtime_profiles import PRIMARY_VERSION, RUNTIME_IDENTITIES, resolve_identity, resource_evidence_for
 
 APP = Path('/Applications/VideoFusion-macOS.app')
 DRAFT_ROOT = Path.home() / 'Movies/JianyingPro/User Data/Projects/com.lveditor.draft'
@@ -96,6 +96,7 @@ def doctor():
             'runtime_profile': profile['profile_id'], 'profile_id': profile['profile_id'],
             'codec_name': codec_name, 'codec_sha256': codec_sha256,
             'capabilities': profile['capabilities'],
+            'resource_evidence': resource_evidence_for(profile['profile_id']),
             'runtime_hashes_verified': True, 'network_called': False,
             'full_signature_check': 'passed'}
 

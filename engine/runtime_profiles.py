@@ -16,6 +16,14 @@ CAPABILITY_NAMES = (
     'native_export', 'native_resources',
 )
 
+RESOURCE_CAPABILITY_NAMES = (
+    'fonts', 'subtitles', 'transitions', 'filters', 'effects', 'stickers',
+    'masks', 'keyframes', 'compound_clips', 'adjustment_layers',
+    'member_online_resources',
+)
+
+EVIDENCE_LAYERS = ('offline_build', 'native_reopen', 'native_export')
+
 PROFILE_1140_BUILD481 = PROFILE_PREFIX + '11.4.0-build481'
 
 # The old version keys are retained as a compatibility surface for code that
@@ -37,6 +45,25 @@ _BUILD481_CAPABILITIES = {
     'existing_edit': False, 'native_export': False, 'native_resources': False,
 }
 _LEGACY_DISABLED_CAPABILITIES = {name: False for name in CAPABILITY_NAMES}
+
+# Evidence is deliberately more granular than the coarse runtime switch.  It
+# records what has actually been observed for Build 481 without turning a
+# partial result into permission to use native resources.  Values are limited
+# to ``verified``, ``partial``, ``blocked`` and ``unverified`` so reports and
+# tests cannot silently reinterpret prose as a capability grant.
+_BUILD481_RESOURCE_EVIDENCE = {
+    'fonts': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'subtitles': {'offline_build': 'verified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'transitions': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'filters': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'effects': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'stickers': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'masks': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'keyframes': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'compound_clips': {'offline_build': 'unverified', 'native_reopen': 'blocked', 'native_export': 'blocked'},
+    'adjustment_layers': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'member_online_resources': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+}
 
 # Codec SHA256 values are source-pinned.  A profile may carry None while it is
 # awaiting an isolated rebuild; None means "not reviewed" and is a hard stop,
@@ -79,6 +106,8 @@ RUNTIME_IDENTITIES = {
         'codec_name': 'jy14_codec_hardened_11_4_0_build481',
         'codec_sha256': 'f6f49c718c740dae77fe1525b2762fc1801951ec6bf5eb223156842529123947',
         'capabilities': dict(_BUILD481_CAPABILITIES),
+        'resource_evidence': {name: dict(layers)
+                              for name, layers in _BUILD481_RESOURCE_EVIDENCE.items()},
     },
 }
 
@@ -97,7 +126,23 @@ TIMELINE_SCHEMAS = frozenset((('185.0.0', 360000), ('187.0.0', 360000)))
 def _copy_profile(profile):
     value = dict(profile)
     value['capabilities'] = dict(profile['capabilities'])
+    if 'resource_evidence' in profile:
+        value['resource_evidence'] = {
+            name: dict(layers) for name, layers in profile['resource_evidence'].items()
+        }
     return value
+
+
+def resource_evidence_for(profile_id):
+    profile = profile_for_id(profile_id)
+    evidence = profile.get('resource_evidence', {})
+    if set(evidence) != set(RESOURCE_CAPABILITY_NAMES):
+        return {}
+    allowed = {'verified', 'partial', 'blocked', 'unverified'}
+    for name, layers in evidence.items():
+        if set(layers) != set(EVIDENCE_LAYERS) or not set(layers.values()) <= allowed:
+            raise ValueError('Malformed resource evidence matrix for ' + name)
+    return {name: dict(layers) for name, layers in evidence.items()}
 
 
 def profile_for_id(profile_id):

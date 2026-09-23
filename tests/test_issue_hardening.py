@@ -216,6 +216,7 @@ class PublishRecoveryTests(unittest.TestCase):
                 self.publish('denied')
         self.assertFalse(self.target.exists())
         self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+        self.assertEqual(self.failure('denied')['phase'], 'index_staging')
         self.assertEqual(self.failure('denied')['recovery'], 'publish-after-fixing-cause')
         self.assertTrue(Path(self.failure('denied')['temporary_index']).is_file())
         self.assertEqual(self.publish('retry')['status'], 'created')

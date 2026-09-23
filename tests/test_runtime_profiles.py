@@ -35,6 +35,16 @@ class RuntimeProfiles(unittest.TestCase):
             'existing_edit': False, 'native_export': False, 'native_resources': False,
         })
         self.assertNotIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
+        evidence = profiles.resource_evidence_for(profiles.PROFILE_1140_BUILD481)
+        self.assertEqual(set(evidence), set(profiles.RESOURCE_CAPABILITY_NAMES))
+        self.assertEqual(evidence['subtitles'], {
+            'offline_build': 'verified', 'native_reopen': 'unverified',
+            'native_export': 'blocked',
+        })
+        self.assertTrue(all(set(layers) == set(profiles.EVIDENCE_LAYERS)
+                            for layers in evidence.values()))
+        self.assertEqual(profiles.resource_evidence_for(
+            profiles.PROFILE_PREFIX + '11.5.0'), {})
         with self.assertRaises(ValueError):
             profiles.resolve_identity(
                 dict(info, CFBundleVersion='482'), profile['library_sha256'], 'X2JNK7LY8J')
