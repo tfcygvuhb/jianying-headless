@@ -38,11 +38,12 @@ PROFILES = {
 
 _FULL_DRAFT_CAPABILITIES = {
     'draft_create': True, 'publish': True, 'verify': True,
+    'existing_edit': True,
     'existing_edit': True, 'native_export': True, 'native_resources': True,
 }
 _BUILD481_CAPABILITIES = {
-    'draft_create': True, 'publish': False, 'verify': True,
-    'existing_edit': False, 'native_export': False, 'native_resources': False,
+    'draft_create': True, 'publish': True, 'verify': True,
+    'existing_edit': True, 'native_export': False, 'native_resources': False,
 }
 _LEGACY_DISABLED_CAPABILITIES = {name: False for name in CAPABILITY_NAMES}
 

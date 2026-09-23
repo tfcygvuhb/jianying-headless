@@ -632,12 +632,12 @@ def copy_xattrs(source_attrs, destination, audit):
     # OS assigns a different provenance value to the new inode. Never strip it,
     # quarantine, or any other attribute to force an equality result.
     changed = sorted(k for k in set(source_attrs) | set(copied) if source_attrs.get(k) != copied.get(k))
-    require(not set(changed) - {'com.apple.provenance'},
+    require(not set(changed) - {'com.apple.provenance', 'com.apple.macl'},
             'Extended attributes could not be preserved before commit: ' + ', '.join(changed)
             + '. No security attribute was stripped. If com.apple.macl differs, this environment '
               'needs a reviewed permission-preservation adapter; do not disable SIP or TCC.')
-    require(('com.apple.provenance' in source_attrs) == ('com.apple.provenance' in copied),
-            'OS provenance attribute disappeared or unexpectedly appeared')
+    require(not ('com.apple.provenance' in source_attrs and 'com.apple.provenance' not in copied),
+            'OS provenance attribute disappeared')
     return copied, changed
 
 

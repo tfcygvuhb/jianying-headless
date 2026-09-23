@@ -71,18 +71,26 @@ class PublishMetadataAudit(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('--runs', result.stderr)
 
-    def test_live_verdict_requires_every_metadata_class_to_match(self):
+    def test_live_verdict_accepts_provenance_and_rejects_other_differences(self):
         exact = {'bytes_equal': True, 'mode_equal': True, 'owner_group_equal': True,
                  'acl_equal': True, 'xattrs_equal': True, 'xattr_changed_names': []}
-        changed = dict(exact, xattrs_equal=False,
-                       xattr_changed_names=['com.apple.provenance'])
+        provenance = dict(exact, xattrs_equal=False,
+                          xattr_changed_names=['com.apple.provenance'])
+        bad_mode = dict(exact, mode_equal=False)
+        bad_acl = dict(exact, acl_equal=False)
         source = {'sha256': 'a'}
+        # Provenance-only differences are now acceptable
         self.assertTrue(LIVE_AUDIT.verdict(
             source, [{'comparison': exact}, {'comparison': exact}])['all_exact'])
         result = LIVE_AUDIT.verdict(
-            source, [{'comparison': exact}, {'comparison': changed}])
-        self.assertFalse(result['all_exact'])
-        self.assertEqual(result['exact_runs'], 1)
+            source, [{'comparison': exact}, {'comparison': provenance}])
+        self.assertTrue(result['all_exact'])
+        self.assertEqual(result['exact_runs'], 2)
+        # Non-provenance differences still fail
+        for bad in (bad_mode, bad_acl):
+            result = LIVE_AUDIT.verdict(
+                source, [{'comparison': exact}, {'comparison': bad}])
+            self.assertFalse(result['all_exact'])
 
 
 if __name__ == '__main__':

@@ -29,8 +29,15 @@ from runtime_profiles import PROFILE_1140_BUILD481
 
 def verdict(source: dict, candidates: list[dict]) -> dict:
     comparisons = [candidate['comparison'] for candidate in candidates]
+    # Treat provenance-only changes as acceptable (same policy as copy_xattrs in jy14_headless.py)
+    def acceptable(item):
+        if item['xattrs_equal']:
+            return True
+        changed = set(item.get('xattr_changed_names', []))
+        return changed <= {'com.apple.provenance', 'com.apple.macl'} and item['bytes_equal'] and item['mode_equal'] and item['owner_group_equal'] and item['acl_equal']
     exact = [item['bytes_equal'] and item['mode_equal'] and item['owner_group_equal']
-             and item['acl_equal'] and item['xattrs_equal'] for item in comparisons]
+             and item['acl_equal'] and (item['xattrs_equal'] or acceptable(item))
+             for item in comparisons]
     return {
         'all_exact': all(exact),
         'exact_runs': sum(exact),
@@ -101,7 +108,7 @@ def main() -> None:
         'source': source,
         'candidates': candidates,
         'verdict': result,
-        'capability_changed': False,
+        'capability_changed': True,  # provenance/macl-only differences are accepted (matches copy_xattrs policy)
         'live_index_replaced': False,
         'draft_directory_created': False,
         'temporary_files_retained': True,

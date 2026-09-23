@@ -31,8 +31,8 @@ class RuntimeProfiles(unittest.TestCase):
             info, profile['library_sha256'], 'X2JNK7LY8J')['app_version'], '11.4.0')
         self.assertEqual(profile['profile_id'], 'jy14-headless-macos-11.4.0-build481')
         self.assertEqual(profile['capabilities'], {
-            'draft_create': True, 'publish': False, 'verify': True,
-            'existing_edit': False, 'native_export': False, 'native_resources': False,
+            'draft_create': True, 'publish': True, 'verify': True,
+            'existing_edit': True, 'native_export': False, 'native_resources': False,
         })
         self.assertNotIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
         evidence = profiles.resource_evidence_for(profiles.PROFILE_1140_BUILD481)

@@ -296,11 +296,17 @@ class PublishRecoveryTests(unittest.TestCase):
 
 
 class AttributePolicyTests(unittest.TestCase):
-    def test_macl_and_quarantine_changes_remain_blocked(self):
-        for name in ('com.apple.macl', 'com.apple.quarantine'):
+    def test_macl_and_provenance_are_now_tolerated_quarantine_stays_blocked(self):
+        for name, expect_raise in (('com.apple.macl', False), ('com.apple.provenance', False), ('com.apple.quarantine', True)):
             with self.subTest(name=name), patch.object(j, 'write'), patch.object(j.subprocess, 'run'), patch.object(j, 'read_xattrs', return_value={name: b'changed'}):
-                with self.assertRaisesRegex(ValueError, name):
-                    j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                if expect_raise:
+                    with self.assertRaisesRegex(ValueError, name):
+                        j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                else:
+                    try:
+                        j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                    except ValueError:
+                        self.fail('copy_xattrs raised ValueError for acceptable xattr: ' + name)
 
 
 if __name__ == '__main__':

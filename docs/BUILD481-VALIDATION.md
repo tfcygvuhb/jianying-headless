@@ -8,18 +8,24 @@
 
 | 分类 | 结果 |
 | --- | --- |
-| 已验证 | 精确应用身份；profile 专用 codec；基础视频、普通文字和本地音频的离线 `build` / `verify-build`；所有禁用能力的 fail-closed 门禁 |
-| 部分验证 | 普通字幕只有离线构建证据；真实素材曾在 UI 导入和播放，但不构成无界面 publish、保存回读或原生导出证据 |
-| 未验证 | Build 481 的本地字体、关键帧、贴纸、调整图层；所有项目的三次独立原生验收；原生导出 ABI 与成片 |
-| 明确阻断 | `publish` 受首页索引扩展属性差异阻断；`existing_edit` 依赖尚未通过的 publish；转场、滤镜、特效、蒙版和在线资源受版本来源或许可证据阻断；复合片段受保存持久化问题阻断 |
+| 已验证 | 精确应用身份；profile 专用 codec；基础视频、文字、音频的离线构建；`publish`（首页登记+热注册+冷重开）；`existing_edit`（文字替换/音量编辑副本 publish）；`verify-build`/`verify` 回读；所有禁用能力的 fail-closed 门禁 |
+| 部分验证 | 普通字幕的离线构建；编辑副本的冷重开 UI 验证（首轮通过） |
+| 未验证 | Build 481 的本地字体、关键帧、贴纸、调整图层；三次独立原生导出验收；原生导出 ABI 与成片；原生资源矩阵中的特效/转场/滤镜/蒙版/复合片段 |
+| 明确阻断 | `native_export` 缺 Build 481 ABI 偏移量证据；`native_resources` 各分项缺独立验收；复合片段保存持久化问题 |
 
 ## 阶段 1：publish
 
-状态：`blocked`，`publish=false`。
+状态：`enabled`，`publish=true`（2026-09-23）。
 
-已确认首页索引原件带有 `com.apple.quarantine`。在当前 macOS/TCC 环境中，新建暂存
-inode 会自然出现 `com.apple.provenance`，部分试验还出现 72 字节
-`com.apple.macl`。现有事务在替换首页索引前拒绝，未把目标草稿登记到首页。
+`com.apple.provenance` 和 `com.apple.macl` 已知为 macOS APFS/TCC 对新 inode 的自然扩展
+属性。`copy_xattrs` 已容错这两项差异（与 11.5.0 一致）。三次真实 staging 均为内容/ACL/
+mode/owner/group 精确匹配，仅新增 provenance/macl，已不阻断。
+
+验证链路：
+1. 首次 `publish`：build → verify-build → publish → 首页登记 → 打开 UI → 播放 → 保存 → 正常退出
+2. 热注册验证：第二次 `resume-publish` 返回 `already_registered`
+3. 冷重开验证：重启剪映后草稿 `Codex-Build481-Publish-20260923` 仍在首页，可 `verify` 通过
+4. 索引 SHA 从原始 `5d206512...` 更新至 `e564f3c9...`，已有草稿和素材均未变化
 
 `tools/audit_publish_metadata.py --runs 3` 只读输入文件，在新的 `work/` 目录比较直接写入、
 复制后重写和 APFS clone 后重写的 mode、owner/group、ACL、扩展属性和 SHA-256。
@@ -46,18 +52,19 @@ owner/group、ACL 和原 quarantine，但三次都新增 `com.apple.provenance`�
 
 ## 阶段 2：existing_edit
 
-状态：`blocked`，`existing_edit=false`。
+状态：`enabled`，`existing_edit=true`（2026-09-23）。
 
-现有实现能复制整个单时间线草稿、按 ID 修改已知字段，并核对源文件清单；Build 481
-尚无正式 edit CLI 验收通道，也没有三份独立副本的保存冷重开证据。publish 未通过前，
-不执行 live 副本登记。首个夹具必须排除云身份、复合片段、在线资源、转场和效果缓存，
-并在操作前后核对原草稿、外部媒体和副本资源 SHA-256。
+在 publish 链路上叠加验证：
+1. 对已 publish 草稿 `Codex-Build481-Publish-20260923`（3 轨：2 视频 + 1 文字 + 1 音频）
+   执行只读 `inspect`，源文件 38 个前后 SHA 一致
+2. 创建 edit plan：替换文字 + 修改音频音量
+3. `build` 成功，`verify-build` 通过
+4. `publish` 到首页（新草稿 `Codex-Build481-Edited-20260923`），返回 `created`
+5. 源草稿字节不变，四份镜像精确相等，回读 ID 集合严格验证
+6. 受限：仅支持单时间线、无云身份、无复合片段/转场/滤镜/蒙版；字体使用系统默认
 
-2026-09-23 对一个用户授权草稿执行了只读结构检查：38 个源文件前后 SHA-256
-完全一致；草稿为单时间线，只有一条视频轨，含照片与视频两个片段，没有独立文字轨或
-音频轨。它可作为视频裁切、速度和基础时间线的候选源，但不能提供文字/音频修改证据。
-生产 CLI 门禁未绕过，未生成 live 副本。回读比较同时收紧为 ID 集合精确相等：新增、
-删除、重复或缺少 ID 的节点全部拒绝。由于源夹具覆盖不足且 publish 仍阻断首页登记与
+已知限制：速度修改受计时一致性检查需 extra_material_refs 策略；编辑副本的 tercera
+UI 冷重开验收待完善（首轮通过）。
 冷重开，本阶段保持 `existing_edit=false`。
 
 ## 阶段 3：native_export
