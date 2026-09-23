@@ -21,9 +21,9 @@
 inode 会自然出现 `com.apple.provenance`，部分试验还出现 72 字节
 `com.apple.macl`。现有事务在替换首页索引前拒绝，未把目标草稿登记到首页。
 
-`tools/audit_publish_metadata.py` 只读输入文件，在新的 `work/` 目录比较直接写入、
+`tools/audit_publish_metadata.py --runs 3` 只读输入文件，在新的 `work/` 目录比较直接写入、
 复制后重写和 APFS clone 后重写的 mode、owner/group、ACL、扩展属性和 SHA-256。
-它不指向 live 草稿根、不执行 publish，也不改变 capability。只有一种策略能在隔离夹具
+它不把输出指向 live 草稿根、不执行 publish，也不改变 capability。只有一种策略能在隔离夹具
 和三次真实登记中稳定保全所有安全元数据，才可提出开启 publish。
 
 本机连续三次非 live 夹具中，直接写入和 APFS clone 均保留了原 quarantine、mode、

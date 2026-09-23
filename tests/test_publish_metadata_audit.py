@@ -28,8 +28,7 @@ class PublishMetadataAudit(unittest.TestCase):
 
     def test_refuses_output_outside_work(self):
         with tempfile.TemporaryDirectory() as folder:
-            source = Path(folder) / 'index.json'
-            source.write_text('{}', encoding='utf-8')
+            source = ROOT / 'engine/blueprint-provenance.json'
             result = subprocess.run(
                 [sys.executable, str(TOOL), '--source', str(source),
                  '--out', str(Path(folder) / 'audit')],
@@ -45,6 +44,28 @@ class PublishMetadataAudit(unittest.TestCase):
             [sys.executable, str(TOOL), '--source', str(source), '--out', str(out)],
             capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
+
+    def test_refuses_symlinked_source_before_resolving_it(self):
+        with tempfile.TemporaryDirectory() as folder:
+            target = Path(folder) / 'target.json'
+            source = Path(folder) / 'source.json'
+            target.write_text('{}', encoding='utf-8')
+            source.symlink_to(target)
+            result = subprocess.run(
+                [sys.executable, str(TOOL), '--source', str(source),
+                 '--out', str(ROOT / 'work/publish-metadata-symlink-test')],
+                capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('symlinked', result.stderr)
+
+    def test_refuses_unbounded_run_count(self):
+        source = ROOT / 'engine/blueprint-provenance.json'
+        result = subprocess.run(
+            [sys.executable, str(TOOL), '--source', str(source),
+             '--out', str(ROOT / 'work/publish-metadata-runs-test'), '--runs', '11'],
+            capture_output=True, text=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('--runs', result.stderr)
 
 
 if __name__ == '__main__':

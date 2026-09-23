@@ -77,17 +77,7 @@ def copy_attrs(source: Path, destination: Path) -> None:
                        check=True, capture_output=True)
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--source', type=Path, required=True)
-    parser.add_argument('--out', type=Path, required=True)
-    args = parser.parse_args()
-    source = args.source.expanduser().resolve(strict=True)
-    out = args.out.expanduser().resolve()
-    project = Path(__file__).resolve().parent.parent
-    work = (project / 'work').resolve()
-    if out == work or work not in out.parents or out.exists():
-        raise SystemExit('--out must be a new child of this checkout work/')
+def run_fixture(source: Path, out: Path) -> dict:
     before = metadata(source)
     payload = source.read_bytes()
     out.mkdir(parents=True, mode=0o700)
@@ -114,7 +104,10 @@ def main() -> None:
         candidates['clone_rewrite'] = metadata(cloned)
         candidates['clone_rewrite']['comparison'] = comparison(before, candidates['clone_rewrite'])
     else:
-        candidates['clone_rewrite'] = {'status': 'unavailable', 'stderr': clone.stderr.strip()}
+        candidates['clone_rewrite'] = {
+            'status': 'unavailable', 'returncode': clone.returncode,
+            'error_redacted': True,
+        }
 
     after = metadata(source)
     report = {
@@ -129,6 +122,46 @@ def main() -> None:
         json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     if before != after:
         raise SystemExit('source metadata changed during read-only audit')
+    return report
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--source', type=Path, required=True)
+    parser.add_argument('--out', type=Path, required=True)
+    parser.add_argument('--runs', type=int, default=1)
+    args = parser.parse_args()
+    lexical_source = Path(os.path.abspath(os.path.expanduser(os.fspath(args.source))))
+    try:
+        resolved_source = lexical_source.resolve(strict=True)
+    except OSError as error:
+        raise SystemExit('source is unavailable') from error
+    if lexical_source != resolved_source:
+        raise SystemExit('--source must not contain symlinked path components')
+    source = lexical_source
+    out = args.out.expanduser().resolve()
+    project = Path(__file__).resolve().parent.parent
+    work = (project / 'work').resolve()
+    if out == work or work not in out.parents or out.exists():
+        raise SystemExit('--out must be a new child of this checkout work/')
+    if args.runs < 1 or args.runs > 10:
+        raise SystemExit('--runs must be between 1 and 10')
+    if args.runs == 1:
+        report = run_fixture(source, out)
+    else:
+        out.mkdir(parents=True, mode=0o700)
+        reports = [run_fixture(source, out / ('run-%02d' % number))
+                   for number in range(1, args.runs + 1)]
+        report = {
+            'schema': 'jianying-publish-metadata-audit-batch/v1',
+            'run_count': args.runs,
+            'all_sources_unchanged': all(item['source_unchanged'] for item in reports),
+            'runs': reports,
+            'capability_changed': False,
+            'live_index_written': False,
+        }
+        (out / 'report.json').write_text(
+            json.dumps(report, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
