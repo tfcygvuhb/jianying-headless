@@ -89,6 +89,19 @@ class DefaultSpeedTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises(ValueError):
                 native_edit.preserved(expected, actual, path)
 
+
+class PreservedIdentitySetTests(unittest.TestCase):
+    def test_native_readback_rejects_added_removed_and_duplicate_nodes(self):
+        expected = [{'id': 'one', 'value': 1}, {'id': 'two', 'value': 2}]
+        native_edit.preserved(expected, deepcopy(expected), '/materials')
+        for actual in (
+                [{'id': 'one', 'value': 1}],
+                expected + [{'id': 'three', 'value': 3}],
+                [{'id': 'one', 'value': 1}, {'id': 'one', 'value': 1}],
+                [{'id': 'one', 'value': 1}, {'value': 2}]):
+            with self.subTest(actual=actual), self.assertRaises(ValueError):
+                native_edit.preserved(expected, actual, '/materials')
+
 class SavedPhotoCompanionTests(unittest.TestCase):
     def fixture(self):
         expected = {'id': 'timeline', 'new_version': '187.0.0',

@@ -577,9 +577,13 @@ def preserved(expected, actual, path='', frame_tolerance=0, quantized=None):
     elif isinstance(expected, list):
         j.require(isinstance(actual, list), 'List changed: ' + path)
         if expected and all(isinstance(v, dict) and 'id' in v for v in expected):
+            actual_ids = [v['id'] for v in actual if isinstance(v, dict) and 'id' in v]
+            j.require(len(actual_ids) == len(actual), 'Unidentified node appeared: ' + path)
+            j.require(len(set(actual_ids)) == len(actual_ids), 'Duplicate native node ID: ' + path)
+            expected_ids = [v['id'] for v in expected]
+            j.require(set(actual_ids) == set(expected_ids), 'Native node identity set changed: ' + path)
             by_id = {v['id']: v for v in actual if isinstance(v, dict) and 'id' in v}
             for item in expected:
-                j.require(item['id'] in by_id, 'Preserved node disappeared: ' + path)
                 preserved(item, by_id[item['id']], path + '/' + item['id'], frame_tolerance, quantized)
         else:
             j.require(expected == actual, 'Preserved list changed: ' + path)

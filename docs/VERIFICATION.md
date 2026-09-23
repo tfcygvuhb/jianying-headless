@@ -15,6 +15,7 @@
 | 授权真实素材离线草稿 | 用户明确授权的 HEVC/AAC 视频与 JPEG 照片，8 秒主轨、照片画中画和两段可编辑文字；`build`、`verify-build` 通过，两个源文件哈希均未变化 |
 | 真实素材 UI | 用户明确授权的 HEVC/AAC 视频与 JPEG 照片由 Codex UI 自动化导入独立测试工程，均加入时间线并实际播放；不属于无界面 publish 证据 |
 | 首页登记 | 未通过。三次真实草稿根前置暂存均新增 `com.apple.provenance`，历史尝试还曾出现 `com.apple.macl`；精确保全门槛拒绝，索引未替换、目标草稿未放置 |
+| 已有草稿副本编辑 | 部分验证。授权源草稿 38 个文件只读检查前后哈希一致，单视频轨含照片和视频片段；缺少文字/独立音频轨，且 publish 未通过，未执行副本登记、保存或冷重开 |
 | 原生导出 | 未启用。静态分析无法唯一证明恢复入口、导出请求构造、对象大小、成员偏移与完成/错误回调 ABI |
 | 能力门禁 | `draft_create=true`、`verify=true`；`publish`、`existing_edit`、`native_export`、`native_resources` 均为 false |
 | 自动化检查 | 仓库回归、源码包装检查、Python 语法检查与 Build 481 导出 fail-closed 专项通过；系统 `sandbox-exec` 拒绝策略有一项环境差异，未作为 Build 481 放行依据 |
