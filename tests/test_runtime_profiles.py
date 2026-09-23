@@ -32,9 +32,9 @@ class RuntimeProfiles(unittest.TestCase):
         self.assertEqual(profile['profile_id'], 'jy14-headless-macos-11.4.0-build481')
         self.assertEqual(profile['capabilities'], {
             'draft_create': True, 'publish': True, 'verify': True,
-            'existing_edit': True, 'native_export': True, 'native_resources': False,
+            'existing_edit': True, 'native_export': False, 'native_resources': False,
         })
-        # Build 481 now has export enabled
+        self.assertNotIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
         evidence = profiles.resource_evidence_for(profiles.PROFILE_1140_BUILD481)
         self.assertEqual(set(evidence), set(profiles.RESOURCE_CAPABILITY_NAMES))
         self.assertEqual(evidence['subtitles'], {
@@ -76,9 +76,9 @@ class RuntimeProfiles(unittest.TestCase):
         for a,b in [('11.4.2','11.5.0'),('11.5.0','11.4.2'),('11.4.0','11.4.0'),('11.5.1','11.5.1')]:
             with self.subTest(a=a,b=b),self.assertRaises(ValueError):
                 profiles.validate_export_profiles(profiles.PROFILE_PREFIX+a,profiles.PROFILE_PREFIX+b)
-        # Build 481 now has native_export=True in its capability profile
-        profiles.validate_export_profiles(profiles.PROFILE_1140_BUILD481,
-                                          profiles.PROFILE_1140_BUILD481)
+        with self.assertRaisesRegex(ValueError, 'capability'):
+            profiles.validate_export_profiles(profiles.PROFILE_1140_BUILD481,
+                                              profiles.PROFILE_1140_BUILD481)
 
     def test_resource_pairing_keeps_capture_provenance(self):
         for p in profiles.EXPORT_PROFILES:

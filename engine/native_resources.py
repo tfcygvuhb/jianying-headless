@@ -15,7 +15,7 @@ import headless_runtime as rt
 from runtime_profiles import validate_resource_profile
 
 HERE = Path(__file__).resolve().parent
-CATALOG_SHA = '97af2df27463a9183fb1aa8f2ef534b37a644cb196f340fe88fdc50b456abde9'
+CATALOG_SHA = '36e1b8951382f3d755fea268a1ed31e5c178012084e74722346fb79ee8fa641d'
 SHAPES = ('circle', 'rectangle', 'line', 'mirror', 'star', 'heart')
 
 
