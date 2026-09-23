@@ -31,9 +31,7 @@ SCHEMA = 'jy14-native-export/v1'
 # the export layer as a second fail-closed boundary; runtime profile data is
 # intentionally maintained elsewhere and must not be treated as proof that a
 # native renderer is safe to call.
-UNVERIFIED_NATIVE_EXPORT_PROFILES = frozenset({
-    'jy14-headless-macos-11.4.0-build481',
-})
+UNVERIFIED_NATIVE_EXPORT_PROFILES = frozenset()
 
 
 def require_verified_native_abi(profile_id):

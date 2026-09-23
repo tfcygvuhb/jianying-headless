@@ -103,6 +103,13 @@ static const NativeAbi abi_profiles[] = {
   {"11.4.2", "632c8ddd09ff4a54f876cd8142eb505055ee26d944199506b230949b7e106bd1",
    0x21234d0, 0x2681f98, 0x3d8, 0x7e8, 669,
    "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
+  // Build 481 arm64 offsets (Apple Silicon native). restore_draft confirmed via
+  // ADRP callback string scan. export_constructor validated by MOV w0,#0x3D8
+  // allocation near exportStart; request_size and mask_hub are tentative arm64
+  // matches for the x86_64 values. Verified on arm64 macOS (Apple M series).
+  {"11.4.0-build481", "aea79715de6097394c2f38153e11565f02a823678801cd1eafe90bcccb20c086",
+   0x2049f18, 0x1148290, 0x3d8, 0x7e8, 669,
+   "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
 };
 static const NativeAbi* active_abi = nullptr;
 
