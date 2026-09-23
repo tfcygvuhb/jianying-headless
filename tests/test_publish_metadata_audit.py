@@ -13,6 +13,10 @@ TOOL = ROOT / 'tools/audit_publish_metadata.py'
 SPEC = importlib.util.spec_from_file_location('audit_publish_metadata', TOOL)
 AUDIT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(AUDIT)
+LIVE_SPEC = importlib.util.spec_from_file_location(
+    'audit_publish_live_staging', ROOT / 'tools/audit_publish_live_staging.py')
+LIVE_AUDIT = importlib.util.module_from_spec(LIVE_SPEC)
+LIVE_SPEC.loader.exec_module(LIVE_AUDIT)
 
 
 class PublishMetadataAudit(unittest.TestCase):
@@ -66,6 +70,19 @@ class PublishMetadataAudit(unittest.TestCase):
             capture_output=True, text=True)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn('--runs', result.stderr)
+
+    def test_live_verdict_requires_every_metadata_class_to_match(self):
+        exact = {'bytes_equal': True, 'mode_equal': True, 'owner_group_equal': True,
+                 'acl_equal': True, 'xattrs_equal': True, 'xattr_changed_names': []}
+        changed = dict(exact, xattrs_equal=False,
+                       xattr_changed_names=['com.apple.provenance'])
+        source = {'sha256': 'a'}
+        self.assertTrue(LIVE_AUDIT.verdict(
+            source, [{'comparison': exact}, {'comparison': exact}])['all_exact'])
+        result = LIVE_AUDIT.verdict(
+            source, [{'comparison': exact}, {'comparison': changed}])
+        self.assertFalse(result['all_exact'])
+        self.assertEqual(result['exact_runs'], 1)
 
 
 if __name__ == '__main__':

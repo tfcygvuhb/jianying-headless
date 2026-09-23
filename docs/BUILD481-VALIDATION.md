@@ -31,6 +31,16 @@ owner/group 与空 ACL，但新 inode 都增加 provenance；`copy2` 还重写�
 不能采用。该结果仍不足以放行：在真实草稿根的历史暂存中 `macl` 曾出现一次、另一次
 未出现，说明 live TCC 路径尚未稳定。三次报告仅保留在忽略的 `work/` 目录。
 
+`tools/audit_publish_live_staging.py --runs 3` 是下一层前置验收：它只在剪映完全退出、
+身份精确匹配时创建新的隐藏暂存文件，不替换首页索引、不放置草稿，并保留全部文件和
+报告。只有三次的内容、mode、owner/group、ACL 和全部 xattr 都与首页索引精确相等，
+才允许继续最小草稿登记；任一差异都在 publish 前停止。
+
+2026-09-23 实际运行结果为 `exact_runs=0/3`：三次均保持内容 SHA、mode、
+owner/group、ACL 和原 quarantine，但三次都新增 `com.apple.provenance`。首页索引
+本身的 SHA 与 xattr 复核未变，未创建草稿目录、未替换索引。由于前置门槛失败，本轮
+没有执行最小草稿登记或 UI 验收，`publish=false` 继续保持。
+
 真实三次验收仍需每轮独立 build、草稿名和 audit，依次完成：首页唯一登记、打开播放、
 保存、正常退出、冷启动重开和结构回读。UI 能打开或播放不能替代首页事务证据。
 

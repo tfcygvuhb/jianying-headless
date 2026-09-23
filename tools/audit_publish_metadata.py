@@ -21,36 +21,52 @@ import subprocess
 
 def digest(path: Path) -> str:
     value = hashlib.sha256()
-    with path.open('rb') as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+    flags = os.O_RDONLY | getattr(os, 'O_CLOEXEC', 0) | getattr(os, 'O_NOFOLLOW', 0)
+    descriptor = os.open(path, flags)
+    try:
+        for chunk in iter(lambda: os.read(descriptor, 1024 * 1024), b''):
             value.update(chunk)
+    finally:
+        os.close(descriptor)
     return value.hexdigest()
 
 
 def xattrs(path: Path) -> dict[str, str]:
-    names = subprocess.check_output(['/usr/bin/xattr', str(path)], text=True).splitlines()
-    return {name: subprocess.check_output(
-        ['/usr/bin/xattr', '-px', name, str(path)], text=True).replace('\n', '').lower()
-            for name in names}
+    try:
+        names = subprocess.check_output(['/usr/bin/xattr', str(path)], text=True).splitlines()
+        return {name: subprocess.check_output(
+            ['/usr/bin/xattr', '-px', name, str(path)], text=True).replace('\n', '').lower()
+                for name in names}
+    except (OSError, subprocess.SubprocessError):
+        raise ValueError('extended attribute inspection failed') from None
 
 
 def acl(path: Path) -> list[str]:
-    result = subprocess.run(['/bin/ls', '-lde', str(path)], check=True,
-                            capture_output=True, text=True,
-                            env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'})
+    try:
+        result = subprocess.run(['/bin/ls', '-lde', str(path)], check=True,
+                                capture_output=True, text=True,
+                                env={'PATH': '/usr/bin:/bin', 'LC_ALL': 'C'})
+    except (OSError, subprocess.SubprocessError):
+        raise ValueError('ACL metadata inspection failed') from None
     lines = result.stdout.splitlines()
     return [line.strip() for line in lines[1:]]
 
 
 def metadata(path: Path) -> dict:
-    value = path.lstat()
-    if not stat.S_ISREG(value.st_mode) or path.is_symlink():
+    before = path.lstat()
+    if not stat.S_ISREG(before.st_mode) or path.is_symlink():
         raise ValueError('fixture input must be a non-symlink regular file')
-    return {
-        'sha256': digest(path), 'size': value.st_size,
-        'mode': oct(stat.S_IMODE(value.st_mode)), 'uid': value.st_uid, 'gid': value.st_gid,
+    result = {
+        'sha256': digest(path), 'size': before.st_size,
+        'mode': oct(stat.S_IMODE(before.st_mode)), 'uid': before.st_uid, 'gid': before.st_gid,
         'xattrs': xattrs(path), 'acl': acl(path),
     }
+    after = path.lstat()
+    identity = lambda value: (value.st_dev, value.st_ino, value.st_size,
+                              value.st_mtime_ns, value.st_ctime_ns)
+    if identity(before) != identity(after):
+        raise ValueError('fixture input changed during metadata inspection')
+    return result
 
 
 def comparison(source: dict, candidate: dict) -> dict:
@@ -73,13 +89,18 @@ def comparison(source: dict, candidate: dict) -> dict:
 
 def copy_attrs(source: Path, destination: Path) -> None:
     for name, value in xattrs(source).items():
-        subprocess.run(['/usr/bin/xattr', '-wx', name, value, str(destination)],
-                       check=True, capture_output=True)
+        try:
+            subprocess.run(['/usr/bin/xattr', '-wx', name, value, str(destination)],
+                           check=True, capture_output=True)
+        except (OSError, subprocess.SubprocessError):
+            raise ValueError('extended attribute copy failed') from None
 
 
 def run_fixture(source: Path, out: Path) -> dict:
     before = metadata(source)
     payload = source.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != before['sha256']:
+        raise ValueError('fixture input changed before the candidate copy')
     out.mkdir(parents=True, mode=0o700)
 
     candidates = {}
