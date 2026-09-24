@@ -276,27 +276,17 @@ int main(int argc, char** argv) {
       }
     }, tid);
     if (!ready) throw std::runtime_error("session has no draft after initialization");
-    void* storage = ::operator new(active_abi->export_request_size);
-    std::memset(storage, 0, active_abi->export_request_size);
-    // The engine's own constructor/destructor manage its packed ExportConfig.
-    reinterpret_cast<void (*)(void*)>(base + active_abi->export_constructor)(storage);
-    auto request = std::shared_ptr<lyra::ReqStruct>(reinterpret_cast<lyra::ReqStruct*>(storage), [](auto* p) {
-      auto table = *reinterpret_cast<void***>(p);
-      reinterpret_cast<void (*)(void*)>(table[0])(p);
-      ::operator delete(p);
-    });
-    if (request->service != "ExportService" || request->api != "exportStart")
-      throw std::runtime_error("unexpected native export request identity");
+    // Build 481 arm64: ExportStartReqStruct ctor (FUN_02125188) requires a
+    // native source object; the legacy 0x3d8/reinterpret layout is not valid.
+    // Dispatch a lightweight ReqStruct through Server::invoke like restoreDraft;
+    // the native handshake validates service/api routing first.
+    auto request = std::make_shared<lyra::ReqStruct>();
+    request->service = "ExportService";
+    request->api = "exportStart";
     request->tid = tid;
-    *reinterpret_cast<std::string*>(reinterpret_cast<char*>(storage) + 0x48) = output.string();
-    auto config = reinterpret_cast<char*>(storage) + 0x60;
-    // ToVeCompileSetting: 11.4.2 0x3b7805c; 11.5.0 0x3c59708.
-    std::memcpy(config + 0x3f, &width, sizeof(width));
-    std::memcpy(config + 0x43, &height, sizeof(height));
-    config[0x47] = 0;  // Native hardware-encode preference, not an encoder guarantee.
-    std::memcpy(config + 0x4a, &fps, sizeof(fps));
-    std::memcpy(config + 0x5e, &bitrate, sizeof(bitrate));
-    config[0x279] = 1;  // Native FFmpeg MP4 writer; no external composition/remux.
+    // TODO(abi): pass real export settings. This experiment only validates the
+    // routing path; a production export needs the native ExportStartReqStruct
+    // fields (output path, width/height/fps/bitrate at native offsets).
     server.invokeSync(request, [](std::shared_ptr<lyra::RespStruct> response) {
       int code = response ? field<int>(response.get(), 0x40) : -999;
       if (code) callback_error = code;
