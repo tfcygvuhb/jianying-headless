@@ -58,6 +58,10 @@ struct DraftInitReqStruct : ReqStruct {
   bool option_a = false, option_b = true;
   DraftInitReqStruct() { service = "DraftService"; api = "draftInit"; }
 };
+struct RestoreDraftReqStruct : ReqStruct {
+  RestoreDraftReqStruct() { service = "DraftService"; api = "restoreDraft"; }
+};
+static_assert(sizeof(RestoreDraftReqStruct) == sizeof(ReqStruct));
 static_assert(sizeof(ReqStruct) == 0x48 && sizeof(InitReqStruct) == 0x90);
 static_assert(sizeof(DraftInitReqStruct) == 0x80 && sizeof(std::string) == 24);
 class Session { public:
@@ -103,15 +107,14 @@ static const NativeAbi abi_profiles[] = {
   {"11.4.2", "632c8ddd09ff4a54f876cd8142eb505055ee26d944199506b230949b7e106bd1",
    0x21234d0, 0x2681f98, 0x3d8, 0x7e8, 669,
    "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
-  // Build 481 arm64 - pending correct restore_draft dispatch address.
-  // Ghidra confirmed export_constructor=0x1148290 (ExportStartReqStruct ctor).
-  // exportStart (0x103548) is the outer C++ method with signature
-  // (shared_ptr<ExportStartReqStruct>, function, bool, long); it is NOT
-  // callable as (long,bool,long). The DraftService restore_draft dispatch
-  // entry needs a packed req + callback ABI, not the legacy three-arg call.
-  // {"11.4.0-build481", "aea79715de6097394c2f38153e11565f02a823678801cd1eafe90bcccb20c086",
-  //  0x103548, 0x1148290, 0x3d8, 0x7e8, 669,
-  //  "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
+  // Build 481 arm64 offsets - confirmed via Ghidra reference map and LLDB:
+  //   restoreDraft = FUN_02041b80 (DraftService::restoreDraft(shared_ptr<ReqStruct>))
+  //   export_constructor = FUN_02125188 (ExportStartReqStruct ctor, 0x150)
+  //   export_request_size = 0x150 (arm64 differs from x86_64 0x3d8!)
+  //   request service/api and config offsets need further field validation.
+  {"11.4.0-build481", "aea79715de6097394c2f38153e11565f02a823678801cd1eafe90bcccb20c086",
+   0x2041b80, 0x2125188, 0x150, 0x7e8, 669,
+   "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
 };
 static const NativeAbi* active_abi = nullptr;
 
@@ -252,7 +255,11 @@ int main(int argc, char** argv) {
     binding->draft = lvve::GetDraftFromJson(json);
     if (!binding->draft) throw std::runtime_error("runtime draft decode failed");
     checkResponse(server.invoke(binding, sid), "runtime draft initialization failed");
-    reinterpret_cast<void (*)(long, bool, long)>(base + active_abi->restore_draft)(sid, true, tid);
+    // RestoreDraft is dispatched by Server::invoke in arm64 Build 481
+    // (FUN_02041b80 = DraftService::restoreDraft(shared_ptr<ReqStruct>)).
+    // Dispatch it like draftInit instead of a raw 3-arg call.
+    auto restoreReq = std::make_shared<lyra::RestoreDraftReqStruct>();
+    checkResponse(server.invoke(restoreReq, sid), "runtime draft restore dispatch failed");
     const auto restore_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout);
     while (!restore_done && std::chrono::steady_clock::now() < restore_deadline) pump(server, 20);
     if (!restore_done) throw std::runtime_error("native timeline restoration did not finish");
