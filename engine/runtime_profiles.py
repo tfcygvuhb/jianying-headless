@@ -43,7 +43,7 @@ _FULL_DRAFT_CAPABILITIES = {
 }
 _BUILD481_CAPABILITIES = {
     'draft_create': True, 'publish': True, 'verify': True,
-    'existing_edit': True, 'native_export': True, 'native_resources': False,
+    'existing_edit': True, 'native_export': False, 'native_resources': False,
 }
 _LEGACY_DISABLED_CAPABILITIES = {name: False for name in CAPABILITY_NAMES}
 
