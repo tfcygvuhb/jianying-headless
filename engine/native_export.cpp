@@ -276,17 +276,17 @@ int main(int argc, char** argv) {
       }
     }, tid);
     if (!ready) throw std::runtime_error("session has no draft after initialization");
-    // Build 481 arm64: ExportStartReqStruct ctor (FUN_02125188) requires a
-    // native source object; the legacy 0x3d8/reinterpret layout is not valid.
-    // Dispatch a lightweight ReqStruct through Server::invoke like restoreDraft;
-    // the native handshake validates service/api routing first.
+    // Build 481 arm64: ExportService::exportStart is reachable through a
+    // lightweight ReqStruct (verified via exportStart:28 log). The full native
+    // ExportStartReqStruct copy-construction (FUN_02125188, 0x150) needs an
+    // already-instantiated source object; manual field layout is not yet safe.
+    // This branch intentionally keeps export routing reachable for diagnosis.
     auto request = std::make_shared<lyra::ReqStruct>();
     request->service = "ExportService";
     request->api = "exportStart";
     request->tid = tid;
-    // TODO(abi): pass real export settings. This experiment only validates the
-    // routing path; a production export needs the native ExportStartReqStruct
-    // fields (output path, width/height/fps/bitrate at native offsets).
+    // TODO(abi): match the native 0x150 ExportStartReqStruct fields
+    // (output path, width/height/fps/bitrate) before enabling production export.
     server.invokeSync(request, [](std::shared_ptr<lyra::RespStruct> response) {
       int code = response ? field<int>(response.get(), 0x40) : -999;
       if (code) callback_error = code;
