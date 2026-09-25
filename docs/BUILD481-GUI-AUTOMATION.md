@@ -51,3 +51,10 @@ Vision 到 AX 坐标映射经同屏“曲线变速”标签校准误差 <1 pt；
 解密草稿只有默认 1× 材料，没有非空曲线；素材哈希不变，最后正常退出。
 详见 `work/build481-curve-gui-20260925/REPORT.md`。没有可供序列化/导出
 验收的官方曲线样本，曲线能力继续关闭。
+
+字体负例另有 work-only 容错生命周期原型和 Vision 字形比较器，记录在
+`work/build481-font-qualification-next-20260925/REPORT.md`。三次 STIX Regular
+原生诊断导出完整解码，抽帧像素相同；STIX 与 Arial 控制的归一化字形掩膜
+Dice 约 0.227，说明该短句可区分两种字体。因本次会话锁屏，容错工具没有
+执行 GUI 保存/冷重开，也没有 GUI 截图与导出帧的对照；原始 STIX Regular
+继续失败关闭，不把这个原型直接并入正式入口。
