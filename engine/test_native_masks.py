@@ -79,7 +79,7 @@ class NativeMaskTests(unittest.TestCase):
 
     def test_wrong_runtime_refused_without_copying(self):
         destination = WORK / 'wrong-runtime'
-        with self.assertRaisesRegex(ValueError, 'runtime profile'):
+        with self.assertRaisesRegex(ValueError, '(?i:runtime profile)'):
             resources.prepare(self.plan, destination, {'runtime_profile': 'jy14-headless-macos-11.4.0'})
         self.assertFalse(destination.exists())
 
@@ -202,18 +202,24 @@ class NativeMaskTests(unittest.TestCase):
         path.write_bytes(path.read_bytes() + b'changed')
         fake = deepcopy(entry)
         fake['source'] = str(dest)
-        with patch.object(resources, 'definition', return_value=fake):
+        catalog = deepcopy(resources.catalog())
+        catalog['resources']['mask/circle'] = fake
+        runtime = {'runtime_profile': catalog['runtime_profile']}
+        with patch.object(resources, 'catalog', return_value=catalog):
             with self.assertRaisesRegex(ValueError, 'bytes differ'):
-                resources.prepare(self.plan, WORK / 'must-not-copy', {'runtime_profile': resources.catalog()['runtime_profile']})
+                resources.prepare(self.plan, WORK / 'must-not-copy', runtime)
         self.assertEqual(resources.tree_manifest(entry['source']), original)
         self.assertFalse((WORK / 'must-not-copy').exists())
 
     def test_missing_resource_and_symlink_fail_closed(self):
         entry = resources.definition('mask/circle')
         entry['source'] = str(WORK / 'missing-source')
-        with patch.object(resources, 'definition', return_value=entry):
+        catalog = deepcopy(resources.catalog())
+        catalog['resources']['mask/circle'] = entry
+        runtime = {'runtime_profile': catalog['runtime_profile']}
+        with patch.object(resources, 'catalog', return_value=catalog):
             with self.assertRaises(FileNotFoundError):
-                resources.prepare(self.plan, WORK / 'must-not-create', {'runtime_profile': resources.catalog()['runtime_profile']})
+                resources.prepare(self.plan, WORK / 'must-not-create', runtime)
         folder = WORK / 'symlink-resource'
         folder.mkdir()
         (folder / 'external').symlink_to(FIXTURE / 'mask-plan.json')
