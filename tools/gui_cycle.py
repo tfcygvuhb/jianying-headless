@@ -93,6 +93,7 @@ def open_target(binary, name):
 
 
 def launch_and_open(binary, name):
+    command([str(binary), 'session', BUNDLE])
     require(not main_pid(), 'Jianying main process is already running; preserve the current session')
     command(['open', '-b', BUNDLE])
     open_target(binary, name)

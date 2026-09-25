@@ -103,10 +103,18 @@ func quitNormally(_ app:NSRunningApplication) {
     guard gone else { fputs("main editor process stayed alive after normal Quit\n",stderr); exit(10) }
     print("quit: AXMenuItem identifier=onAppQuitTriggered:, pid=\(app.processIdentifier) terminated")
 }
-guard AXIsProcessTrusted(),CommandLine.arguments.count>=3 else { fputs("usage: jianying_ax check|set|click|save|quit <bundle-id> [...]; AX trust required\n",stderr);exit(2) }
+guard CommandLine.arguments.count>=3 else { fputs("usage: jianying_ax session|check|set|click|save|quit <bundle-id> [...]\n",stderr);exit(2) }
 let command=CommandLine.arguments[1],bundleID=CommandLine.arguments[2]
 let expectedBundle="com.lemon.lvpro"
 guard bundleID==expectedBundle else {fputs("unexpected bundle id\n",stderr);exit(3)}
+if command=="session" {
+    let state=CGSessionCopyCurrentDictionary() as? [String:Any] ?? [:]
+    guard (state["CGSSessionScreenIsLocked"] as? NSNumber)?.boolValue == false else {
+        fputs("macOS screen is locked; unlock before Jianying GUI acceptance\n",stderr);exit(21)
+    }
+    print("session-unlocked");exit(0)
+}
+guard AXIsProcessTrusted() else {fputs("Accessibility permission is required\n",stderr);exit(2)}
 if command=="quit" { let app=appForBundle(bundleID);quitNormally(app);exit(0) }
 if command=="check" {
     guard CommandLine.arguments.count==6 else {fputs("check needs role field exact-value\n",stderr);exit(2)}
