@@ -4,14 +4,14 @@
 
 - 入口：本 Skill 的 `scripts/headless_draft.py`。代码位于单独检出的 Jianying Headless 项目 `engine/`；独立安装 Skill 时设置 `JIANYING_HEADLESS_ROOT`，入口核验代码与蓝图 SHA-256。
 - 应用：`/Applications/VideoFusion-macOS.app`；目标根为当前用户 `Movies/JianyingPro/User Data/Projects/com.lveditor.draft`。
-- 精确 runtime profile：11.5.0 为主版本，11.4.2 为兼容版本；11.4.0 历史配置保持禁用。另有精确 `11.4.0 Build 481` 离线草稿预览档案，只开放 `draft_create` 与结构检查；首页登记、已有工程编辑、原生资源和原生 MP4 导出继续拒绝。各档案固定 version、build、bundle ID、Team ID、完整签名与 libvideoeditor hash；未列入的版本会拒绝，不改旧组件的常量。
+- 精确 runtime profile：11.5.0 为主版本，11.4.2 为兼容版本；普通 11.4.0 历史配置保持禁用。精确 `11.4.0 Build 481` 已开放 `draft_create`、`publish`、`verify`、`existing_edit`、基础原生导出（本地视频、文字、本地音频）、0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、固定 Monaco 字体、固定 SHA `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、固定叠化 `transition/dissolve` 与轻微抖动 `effect/light-shake`。叠化和轻微抖动正式 Skill 导出分别通过 168 和 90 帧 H.264/AAC、标准 MP4 与完整解码。两项只按精确资源 key、完整文件 SHA 清单和已声明参数开放；`native_resources` 总开关仍关闭。原始 STIXGeneral Regular OTF GUI 保存会丢失字体绑定；显式生成的固定 SHA 别名已通过验收，其他字体仍关闭。各档案固定 version、build、bundle ID、Team ID、完整签名与 libvideoeditor hash；未列入的版本会拒绝，不改旧组件的常量。原 Skill 不支持曲线变速。
 - 历史本机验收包含 11.4.0 / 11.4.2 的 6 秒、6 轨草稿：视频切片、混合速度、画中画、字幕、标题、WAV BGM 和 MP3 音效。原生打开、播放、保存、退出和冷重开均有分项记录；私人工作目录及原始证据不随源码分发，见下方验证说明。
 - 草稿 build/publish 入口没有调用网络、ASR、视频导出或在线资源下载。用户明确要求成片时另用 [export-macos.md](export-macos.md)；任意本地音频可以导入，但音频格式仍须在剪映中验收；实测源编码为 H.264/AAC、WAV、MP3。HEVC 在输入白名单，尚未在本次新建链路单独验收。
 - 11.4.2 的 25 fps、12 度旋转画中画、同一主轨混合不同视频、彩色标题及描边均已完成实际显示、播放和冷重开回读。其他帧率和编码仍需按实际项目验收，不能把一个样例视为所有组合均已验证。
 - 图片/GIF：PNG（含 alpha）、JPEG、原始 GIF 已接入生成和媒体库登记。历史 5 秒 PNG/GIF 样本完成原生播放、保存和冷重开；JPEG 有离线测试，未单独做原生显示验收。GIF 时长按容器实际时间，不用帧数乘平均帧间隔推算。
 - 线性关键帧：历史 4 秒样本的图片 x/y、统一缩放、旋转、透明度，文字 y 和音量曲线经过原生播放、保存、冷重开及导出检查；合成音频曲线验证不等于绝对响度标定。
 - 几何蒙版：11.4.2 的六种静态形状经过 12 秒样本的原生播放、保存、冷重开及隔离导出。资源仅来自实际采集并固定逐文件 hash 的本机样本，不可据此分发。
-- 叠化转场：已采集 11.4.2 原生结构，支持主视频相邻片段；历史 4 秒样本的解析、导出、界面播放、保存和冷重开经过检查。
+- 叠化转场：11.4.2 历史样本记录见下文。本机 Build 481 另对固定 `transition/dissolve` 资源完成官方 GUI 保存冷重开、预览与正式 Skill 原生导出；Build 481 的开放范围仅此固定资源。GUI QuickTime 样片不计入标准 MP4，正式 Skill 输出为 168 帧 `isom` 并完整解码。叠化不是音频交叉淡化，须核查真实音频。
 - 画面特效：当前仅保留已采集的轻微抖动；高清黑白滤镜与橙色描边花字已移除。普通文字、颜色和描边不受影响。
 - 修改已有单时间线多轨草稿，使用 [edit-existing-macos.md](edit-existing-macos.md) 的 `edit` 入口，不用小型新建计划重建复杂项目。
 - 复合片段已有离线保留/修改/构建和原生冻结快照导出实验能力；原生保存会在本次对照样本中将子草稿引用改成缺少 ID 的根级路径，新旧侧文件不一致，因此正式首页登记被拦截，不能交付为已验的可编辑嵌套草稿。范围及操作见 [edit-existing-macos.md](edit-existing-macos.md)。
@@ -97,7 +97,7 @@ python3 SKILL/scripts/headless_draft.py from-compiled --compiled WORK/compiled/c
 
 `range` 和 `speed` 为 0–1，分别控制抖动幅度和特效运动速度，默认 0.15 / 0.33；后者不是视频倍速。不接受 source、关键帧或片段速度字段。
 
-轻微抖动保留原生资源身份与逐文件哈希，采集时未见会员标记，但技术支持不授予商用或再分发许可。原生保存可能回指已固定的本机缓存；只接受已记录的源文件与编译产物，未知字节变化会拒绝。不自动下载或绕过账号要求。
+Build 481 的轻微抖动通过官方 GUI 保存冷重开与正式 Skill 导出；只接受已固定的 27 个源文件和两份 macOS 26.6.2 编译缓存及哈希。渲染成功不证明账号权益、商用或再分发许可，也不代表任意会员素材均可用。原生保存可能回指已固定的本机缓存；未知字节变化会拒绝。不自动下载或绕过账号要求。
 
 高清黑白滤镜和橙色描边花字已移除支持、资源条目与使用示例。旧计划或冻结快照含这两项时会报错，不自动移除效果后交付。普通文字及自定义颜色、描边仍可用。历史测试记录不构成当前支持范围。
 

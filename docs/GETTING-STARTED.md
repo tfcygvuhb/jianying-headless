@@ -12,7 +12,7 @@
 | --- | --- |
 | 电脑 | Apple Silicon Mac，例如 M 系列芯片；不支持 Windows、Intel Mac 或 Rosetta 终端 |
 | 系统 | macOS 26.0 或以上 |
-| 剪映 | 国内版剪映专业版 11.5.0；11.4.2 有兼容配置；精确 11.4.0 Build 481 仅能离线构建，CapCut 国际版不适用 |
+| 剪映 | 国内版剪映专业版 11.5.0；11.4.2 有兼容配置；精确 11.4.0 Build 481 支持已验证的离线构建、首页登记、已有工程副本编辑、基础原生导出及0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速，并开放固定叠化与轻微抖动资源子集；CapCut 国际版不适用 |
 | 安装位置 | `/Applications/VideoFusion-macOS.app` |
 | 程序身份 | 必须通过项目检查；只看到相同版本号还不够 |
 | 编译工具 | 已验组合为 Apple clang 21.0.0 / macOS SDK 26.5；其他组合最终仍须匹配固定构建哈希 |
@@ -21,8 +21,13 @@
 
 **尚未完成另一台独立 Mac 的完整验收。** 目前已验证本机 11.5.0，以及从仅含 Git 源码的新目录重新编译、体检、构建和原生导出的流程；不等于所有 11.5.0 安装包和电脑均兼容。
 
-11.4.0 Build 481 用户可以完成 `doctor`、离线 `build` 和 `verify-build`，但本教程后续的
-首页登记、冷重开回读与原生 MP4 导出不适用于该预览档案；工具不会为这些步骤生成命令。
+11.4.0 Build 481 用户可以完成 `doctor`、`build`、`verify-build`、首页登记、已有工程副本编辑，
+以及本地视频、文字和本地音频的基础原生 MP4 导出。0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、
+固定 Monaco 字体、固定 SHA `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、固定叠化和轻微抖动资源已通过单项验收；后两项仅允许精确资源 key 和固定缓存内容。Build 481 的原始 STIXGeneral Regular OTF 保存失败；固定 SHA 的本地别名已单项通过，其他字体仍关闭。曲线变速、其他转场/特效和未逐项验收的原生资源保持关闭；`native_resources` 总门禁仍为 false。
+叠化与轻微抖动的证据和精确边界见[专项验收记录](BUILD481-TRANSITION-EFFECT-20260924.md)。
+使用 STIXGeneral Regular 时须显式运行[固定别名工具](../tools/make_stix_regular_alias.py)，
+将新文件绝对路径填入 `font_path`；仅支持该系统字体的精确 SHA，详见[字体 GUI 验收](BUILD481-FONT-GUI-20260924.md)。
+2× 在一个隔离样本中缺少末帧，其他未列倍率也未验收；六档恒速的精确边界见[恒速补验](BUILD481-SPEED-20260925.md)。
 
 剪映官方入口为 [剪映官网](https://www.capcut.cn/)。官网可能只提供新版，本项目不提供安装包，也没有确认长期可用的官方 11.5.0 下载地址。已有新版时，不要为试用直接降级或覆盖旧草稿；没有匹配版本，应先停在环境准备阶段。
 
@@ -139,7 +144,7 @@ python3 tools/build_native_codec.py
 python3 skills/yichen-jianying-edit/scripts/headless_draft.py doctor
 ```
 
-**成功标志：**构建输出 `built-and-verified`，或已构建时输出 `already-valid`；随后 doctor 输出 `"status": "ok"`，11.5.0 对应 `"app_version": "11.5.0"`。
+**成功标志：**构建输出 `built-and-verified`，或已构建时输出 `already-valid`；随后 doctor 输出 `"status": "ok"`，并且应用版本/build 与本机精确匹配（11.5.0、11.4.2 或已验收的 11.4.0 Build 481）。
 
 “桥接组件”是让项目代码调用本机剪映的小程序。`doctor` 是环境体检，不会剪视频；通过体检不等于画面和声音已经验收。
 
@@ -198,7 +203,7 @@ python3 tools/start_here.py build
 
 只在需要检查原生视频导出时，执行 `next-steps.md` 中的 **export 命令**。
 
-**成功标志：**本次工作目录中的 `export/render.mp4` 存在，`result.json` 状态为 `encoded-and-decoded`。还应实际播放成片，检查首末画面和声音。
+**成功标志：**本次工作目录中的 `export/render.mp4` 存在，`result.json` 状态为 `encoded-and-decoded`，并且记录的容器为标准 MP4、视频为 H.264、音频为 AAC。还应实际播放成片，检查首末画面和声音。
 
 这条命令导出的是最初构建的快照，**不是剪映里后来手改的版本**。手改后的最终作品可使用剪映界面的导出功能；不要把旧快照误当成最新工程。
 

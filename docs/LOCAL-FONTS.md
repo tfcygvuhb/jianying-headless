@@ -153,3 +153,14 @@ fix is included here or used to claim success for the font acceptance above.
 The newer permanent local installation contains those fixes; its combined test
 results are not attributed to this font-only patch. Different machines, editor
 versions, fonts and real projects still require their own acceptance checks.
+
+## Build 481 精确字体门禁
+
+剪映 11.4.0 Build 481 的正式导出只接受已经分别通过 GUI 保存冷重开、绑定回读和
+Skill 导出的 Monaco TTF、Arial TTF、STIXGeneralItalic OTF，以及显式本地生成的
+STIXGeneral Regular 别名 OTF 的固定 SHA。原始 STIXGeneral Regular OTF 在 GUI 保存后
+会改绑为应用系统字体，因此不能直接使用。仅对该精确系统文件，可在项目根目录运行
+`python3 tools/make_stix_regular_alias.py --output "$PWD/work/stix-regular-alias.otf"`，
+将新路径用于文字 `font_path`。工具要求精确源 SHA 和 `fontTools==4.60.2`，不覆盖源文件
+或现有输出；别名的证据与边界见 [Build 481 字体 GUI 验收](BUILD481-FONT-GUI-20260924.md)。
+其他静态字体仍需单项验收，不能从这些样本推断为通用 OTF/TTF 支持。

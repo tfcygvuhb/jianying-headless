@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import tempfile
 import unittest
@@ -106,6 +107,25 @@ class ExportGuards(unittest.TestCase):
         self.probe['format']['tags']['major_brand'] = 'qt  '
         with self.assertRaisesRegex(ValueError, 'MP4 container'):
             e.validate_probe(self.probe, self.settings, 6_000_000, True)
+
+    def test_duplicate_identical_mp4_brand_accepted_but_mixed_rejected(self):
+        self.probe['format']['tags']['major_brand'] = 'isom;isom'
+        self.assertEqual(e.validate_probe(self.probe, self.settings, 6_000_000, True)['major_brand'], 'isom')
+        self.probe['format']['tags']['major_brand'] = 'isom;qt  '
+        with self.assertRaisesRegex(ValueError, 'MP4 container'):
+            e.validate_probe(self.probe, self.settings, 6_000_000, True)
+
+    def test_real_ftyp_header_checked_independently_of_tags(self):
+        output = self.root / 'output.mp4'
+        for header, accepted in ((b'\x00\x00\x00\x20ftypisom\x00\x00\x02\x00', True),
+                                 (b'\x00\x00\x00\x20ftypqt  \x00\x00\x02\x00', False),
+                                 (b'\x00\x00\x00\x20freeisom\x00\x00\x02\x00', False)):
+            output.write_bytes(header)
+            if accepted:
+                self.assertEqual(e.validate_ftyp(output), 'isom')
+            else:
+                with self.assertRaisesRegex(ValueError, 'MP4 container'):
+                    e.validate_ftyp(output)
 
     def test_truncated_video_rejected(self):
         self.probe['streams'][0]['nb_frames'] = '75'
@@ -241,19 +261,176 @@ class ExportGuards(unittest.TestCase):
     def test_retired_effects_fail_before_export_job_creation(self):
         out = self.root / 'must-not-export'
         timeline = {'materials': {'effects': [{'type': 'filter', 'id': 'retired'}]}}
-        with patch.object(e, 'verified_build', return_value=(self.folder, {}, timeline)):
+        record = {'runtime_profile': 'jy14-headless-macos-11.5.0'}
+        with patch.object(e, 'verified_build', return_value=(self.folder, record, timeline)):
             with self.assertRaisesRegex(ValueError, 'support has been removed'):
                 e.run(self.folder, out)
         self.assertFalse(out.exists())
 
-    def test_build481_native_export_remains_disabled_without_abi_evidence(self):
-        out = self.root / 'build481-must-not-export'
-        timeline = {'materials': {}}
-        record = {'runtime_profile': 'jy14-headless-macos-11.4.0-build481'}
-        with patch.object(e, 'verified_build', return_value=(self.folder, record, timeline)):
-            with self.assertRaisesRegex(ValueError, 'ABI evidence is incomplete'):
-                e.run(self.folder, out)
-        self.assertFalse(out.exists())
+    def test_build481_native_export_abi_passed(self):
+        e.require_verified_native_abi('jy14-headless-macos-11.4.0-build481')
+        with self.assertRaisesRegex(ValueError, 'ABI evidence is incomplete'):
+            e.require_verified_native_abi('jy14-headless-macos-future')
+
+    def test_build481_advanced_export_scope_stays_closed(self):
+        profile = 'jy14-headless-macos-11.4.0-build481'
+        base = {'id': 'test-timeline', 'materials': {'speeds': [{'speed': 1}]},
+                'tracks': [{'segments': [{'speed': 1}]}]}
+        e.require_build481_export_scope(profile, {'native_resources': [], 'font_assets': []}, base)
+        for bucket in ('transitions', 'video_effects', 'effects'):
+            value = deepcopy(base)
+            value['materials'][bucket] = [{'id': 'pending'}]
+            with self.subTest(bucket=bucket), self.assertRaises(ValueError):
+                e.require_build481_export_scope(profile, {}, value)
+        for key, bucket in (('transition/dissolve', 'transitions'),
+                            ('effect/light-shake', 'video_effects')):
+            value = deepcopy(base)
+            value['materials'][bucket] = [deepcopy(e.resources.definition(key)['material'])]
+            e.require_build481_export_scope(profile, {'native_resources': [{'key': key}]}, value)
+            with self.assertRaisesRegex(ValueError, 'inventory does not match'):
+                e.require_build481_export_scope(profile, {}, value)
+            value['materials'][bucket][0]['resource_id'] = 'wrong'
+            with self.assertRaisesRegex(ValueError, 'identity is not export-accepted'):
+                e.require_build481_export_scope(profile, {'native_resources': [{'key': key}]}, value)
+        value = deepcopy(base)
+        value['materials']['common_mask'] = [{'resource_type': 'circle'}]
+        e.require_build481_export_scope(profile, {'native_resources': [{'key': 'mask/circle'}]}, value)
+        value['materials']['common_mask'] = [{'resource_type': 'mirror'}]
+        e.require_build481_export_scope(profile, {'native_resources': [{'key': 'mask/mirror'}]}, value)
+        for key, resource_type in (('mask/rectangle', 'rectangle'), ('mask/star', 'pentagram'),
+                                   ('mask/heart', 'heart'), ('mask/line', 'line')):
+            value['materials']['common_mask'] = [{'resource_type': resource_type}]
+            e.require_build481_export_scope(profile, {'native_resources': [{'key': key}]}, value)
+        with self.assertRaisesRegex(ValueError, 'inventory does not match'):
+            e.require_build481_export_scope(profile, {}, value)
+        value['materials']['common_mask'][0]['resource_type'] = 'custom'
+        with self.assertRaisesRegex(ValueError, 'native resource'):
+            e.require_build481_export_scope(profile, {'native_resources': [{'key': 'mask/custom'}]}, value)
+        value = deepcopy(base)
+        for speed in (0.1, 0.5, 0.75, 1, 1.5, 8):
+            value['materials']['speeds'][0]['speed'] = speed
+            e.require_build481_export_scope(profile, {}, value)
+        value['materials']['speeds'][0]['speed'] = 2
+        with self.assertRaisesRegex(ValueError, 'unreviewed constant speeds'):
+            e.require_build481_export_scope(profile, {}, value)
+        value['materials']['speeds'][0]['speed'] = 0.1001
+        with self.assertRaisesRegex(ValueError, 'unreviewed constant speeds'):
+            e.require_build481_export_scope(profile, {}, value)
+        value['materials']['speeds'][0]['speed'] = True
+        with self.assertRaisesRegex(ValueError, 'unreviewed constant speeds'):
+            e.require_build481_export_scope(profile, {}, value)
+        value['materials']['speeds'][0]['speed'] = 1.5
+        value['materials']['speeds'][0]['curve_speed'] = {'points': []}
+        with self.assertRaisesRegex(ValueError, 'await export acceptance'):
+            e.require_build481_export_scope(profile, {}, value)
+        value['materials']['speeds'][0]['curve_speed'] = {}
+        with self.assertRaisesRegex(ValueError, 'await export acceptance'):
+            e.require_build481_export_scope(profile, {}, value)
+        value = deepcopy(base)
+        value['tracks'][0]['segments'][0]['common_keyframes'] = [{'id': 'pending'}]
+        with self.assertRaisesRegex(ValueError, 'keyframes are not verified'):
+            e.require_build481_export_scope(profile, {}, value)
+        with self.assertRaisesRegex(ValueError, 'font SHA-256'):
+            e.require_build481_export_scope(profile, {'font_assets': [{'relative': 'font.ttf',
+                'sha256': '0' * 64, 'size': 1}]}, base)
+
+    @staticmethod
+    def build481_keyframe_group(channel='y', points=None):
+        prop, low, high = e.motion.KEYFRAMES[channel]
+        if points is None:
+            points = [0, 1_000_000]
+        return {'id': 'group-' + channel, 'material_id': '', 'property_type': prop,
+                'keyframe_list': [
+                    {'id': 'node-%s-%s' % (channel, at), 'curveType': 'Line', 'graphID': '',
+                     'left_control': {'x': 0.0, 'y': 0.0}, 'right_control': {'x': 0.0, 'y': 0.0},
+                     'time_offset': at, 'values': [low if at == 0 else high]}
+                    for at in points]}
+
+    def test_build481_verified_keyframe_channel_matrix_is_accepted(self):
+        profile = 'jy14-headless-macos-11.4.0-build481'
+        matrix = {'video': ('x', 'y', 'scale', 'rotation', 'opacity', 'volume'),
+                  'text': ('x', 'y', 'scale', 'rotation'), 'audio': ('volume',)}
+        for track_type, channels in matrix.items():
+            for channel in channels:
+                with self.subTest(track_type=track_type, channel=channel):
+                    segment = {'target_timerange': {'start': 0, 'duration': 1_000_000},
+                               'common_keyframes': [self.build481_keyframe_group(channel)]}
+                    if track_type == 'video':
+                        segment.update(speed=1.0, source_timerange={'start': 0, 'duration': 1_000_000})
+                    timeline = {'id': 'test-timeline', 'materials': {},
+                                'tracks': [{'type': track_type, 'segments': [segment]}]}
+                    e.require_build481_export_scope(profile, {'font_assets': []}, timeline)
+
+    def test_build481_allows_only_pinned_custom_fonts(self):
+        profile = 'jy14-headless-macos-11.4.0-build481'
+        timeline = {'id': 'test-timeline', 'materials': {}, 'tracks': []}
+        asset = {'relative': 'Resources/headless-fonts/monaco.ttf',
+                 'sha256': 'e110b2fb6248c654878dee87e9805ac0b2afc8fab19099cf92bfe12ea085c028', 'size': 12345}
+        for digest in e.BUILD481_FONT_SHA256:
+            e.require_build481_export_scope(profile, {'font_assets': [dict(asset, sha256=digest)]}, timeline)
+        for digest in ('0' * 64,
+                       '5add3f3f2bd7fd897d2fa5ccbe468607c52111dc44cdfaaf2d851a574f5357a7'):
+            with self.subTest(digest=digest), self.assertRaisesRegex(ValueError, 'font SHA-256'):
+                e.require_build481_export_scope(profile, {'font_assets': [dict(asset, sha256=digest)]}, timeline)
+
+    def test_build481_keyframes_reject_unverified_shapes_channels_and_mapping(self):
+        profile = 'jy14-headless-macos-11.4.0-build481'
+        def timeline(track_type='text', channel='y', **segment_changes):
+            segment = {'target_timerange': {'start': 0, 'duration': 1_000_000},
+                       'common_keyframes': [self.build481_keyframe_group(channel)]}
+            segment.update(segment_changes)
+            return {'id': 'test-timeline', 'materials': {},
+                    'tracks': [{'type': track_type, 'segments': [segment]}]}
+
+        rejected = [
+            timeline('text', 'opacity'),
+            timeline('filter', 'y'),
+            timeline('video', 'x', speed=1.5),
+            timeline('video', 'x', speed=1.0,
+                     source_timerange={'start': 100, 'duration': 1_000_000}),
+            timeline('video', 'x', speed=1.0,
+                     source_timerange={'start': 0, 'duration': 900_000}),
+        ]
+        for node_change in ({'curveType': 'Sine'}, {'curveType': 'Line', 'graphID': 'graph'},
+                            {'curveType': 'Line', 'values': [0.0, .5]},
+                            {'curveType': 'Line', 'values': [float('nan')]}):
+            value = timeline()
+            value['tracks'][0]['segments'][0]['common_keyframes'][0]['keyframe_list'][0].update(node_change)
+            rejected.append(value)
+        value = timeline()
+        value['tracks'][0]['segments'][0]['common_keyframes'][0]['keyframe_list'].pop()
+        rejected.append(value)
+        value = timeline()
+        value['tracks'][0]['segments'][0]['common_keyframes'][0]['keyframe_list'][1]['time_offset'] = 0
+        rejected.append(value)
+        value = timeline()
+        value['tracks'][0]['segments'][0]['common_keyframes'].append(self.build481_keyframe_group('y'))
+        rejected.append(value)
+        for candidate in rejected:
+            with self.subTest(candidate=candidate), self.assertRaises(ValueError):
+                e.require_build481_export_scope(profile, {'font_assets': []}, candidate)
+
+    def test_previously_verified_native_export_profiles_remain_enabled(self):
+        # Build 481's fail-closed ABI gate must not accidentally disable the
+        # exact 11.5.0 and 11.4.2 profiles that already passed native export.
+        for version in ('11.5.0', '11.4.2'):
+            with self.subTest(version=version):
+                profile_id = 'jy14-headless-macos-' + version
+                self.assertIn(profile_id, e.VERIFIED_NATIVE_ABI_PROFILES)
+                e.require_verified_native_abi(profile_id)
+
+    def test_native_helper_preserves_profile_specific_restore_dispatch(self):
+        source = (Path(__file__).with_name('native_export.cpp')).read_text()
+        self.assertRegex(source, re.compile(
+            r'"11\.5\.0".*?0x21b86dc, 0x274b018, 0x3d8, 0x7e8, false, true', re.S))
+        self.assertRegex(source, re.compile(
+            r'"11\.4\.2".*?0x21234d0, 0x2681f98, 0x3d8, 0x7e8, false, true', re.S))
+        self.assertRegex(source, re.compile(
+            r'"11\.4\.0-build481".*?0x2041b80, 0x2681f98, 0x3d8, 0x7e8, true, true', re.S))
+        self.assertIn('if (active_abi->invoke_restore_via_server)', source)
+        self.assertIn('reinterpret_cast<void (*)(long, bool, long)>(base + active_abi->restore_draft)', source)
+        self.assertIn('checkResponse(server.invoke(restoreReq, sid)', source)
+        self.assertIn('exportcallback compile_error_callback', source)
 
     def test_changed_light_shake_resource_is_not_staged(self):
         out = self.root / 'output'; out.mkdir()

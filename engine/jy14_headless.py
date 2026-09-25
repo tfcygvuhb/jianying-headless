@@ -259,7 +259,7 @@ def text_material(material, seg):
                     font_size=size, text_color=color, border_color=border, border_width=width)
 
 
-def timeline_for(plan, assets, target, tid, bp, font_assets=None):
+def timeline_for(plan, assets, target, tid, bp, font_assets=None, runtime_profile=None):
     font_assets = fonts.collect_plan(plan) if font_assets is None else font_assets
     doc = deepcopy(bp['timeline'])
     doc.update(id=tid, tracks=[], materials={}, duration=0, color_space=0,
@@ -329,7 +329,7 @@ def timeline_for(plan, assets, target, tid, bp, font_assets=None):
                 reg.update(segmentId=segment['id'], materialId=asset['sha256'][:32],
                            materialName=Path(asset['source']).name, rank=str(si + 1))
                 registrations[segment['id']] = reg
-            motion.apply(segment, doc['materials'], spec, kind, target)
+            motion.apply(segment, doc['materials'], spec, kind, target, runtime_profile)
             effects.apply(segment, doc['materials'], spec, target)
             visual_effects.apply_text(segment, doc['materials'], spec, target)
             newtrack['segments'].append(segment)
@@ -388,7 +388,7 @@ def build(plan_path, out):
         require(nd.digest(dest) == asset['sha256'] == nd.digest(asset['source']), 'Source changed while copying')
     native_resources = resources.prepare(plan, folder, runtime)
     fonts.copy_assets(font_assets.values(), folder)
-    timeline, reg = timeline_for(plan, assets, target, tid, bp, font_assets)
+    timeline, reg = timeline_for(plan, assets, target, tid, bp, font_assets, runtime['runtime_profile'])
     metadata = deepcopy(bp['metadata'])
     metadata.update(draft_id=did, draft_name=target.name, draft_fold_path=str(target), draft_root_path=str(nd.DRAFT_ROOT),
                     tm_draft_create=now, tm_draft_modified=now, tm_duration=duration,
@@ -507,7 +507,7 @@ def verify_structure(timeline, metadata, plan, assets, target, allow_native_reso
                     and abs(timerange['duration'] - spec['duration_us']) <= tolerance, 'Target timing changed')
             max_end = max(max_end, timerange.get('start', 0) + timerange['duration'])
             material = index[actual['material_id']][1]
-            motion.verify(actual, index, spec, wanted['type'], tolerance)
+            motion.verify(actual, index, spec, wanted['type'], tolerance, runtime_profile)
             native_resource_bindings.extend(effects.verify(actual, index, spec, tolerance, target,
                                                            native_media_path, allow_native_resource_cache))
             native_resource_bindings.extend(visual_effects.verify(actual, index, spec, wanted['type'], target,
@@ -515,7 +515,8 @@ def verify_structure(timeline, metadata, plan, assets, target, allow_native_reso
             if 'mask' in spec:
                 mask = next(index[r][1] for r in actual.get('extra_material_refs', []) if index[r][0] == 'common_mask')
                 native_resource_bindings.append(resources.verify_binding('mask/' + spec['mask']['shape'], mask['path'],
-                    target, native_media_path, allow_native_cache=allow_native_resource_cache))
+                    target, native_media_path, allow_native_cache=allow_native_resource_cache,
+                    runtime_profile=runtime_profile))
             animated = set(spec.get('keyframes', {}))
             if wanted['type'] in {'video', 'text'}:
                 clip = actual['clip']
@@ -590,10 +591,12 @@ def verify_build(out):
     timeline = h._decrypt_metadata_in_memory(out / 'draft/draft_info.json')
     metadata = h._decrypt_metadata_in_memory(out / 'draft/draft_meta_info.json')
     font_assets = fonts.recorded_assets(record, plan)
-    verify_structure(timeline, metadata, plan, record['assets'], target, font_assets=font_assets or ())
+    verify_structure(timeline, metadata, plan, record['assets'], target,
+                     runtime_profile=record.get('runtime_profile'), font_assets=font_assets or ())
     if font_assets is not None:
         fonts.verify_assets(font_assets, timeline, target, out / 'draft')
-    resources.verify_files(record.get('native_resources', []), out / 'draft', plan)
+    resources.verify_files(record.get('native_resources', []), out / 'draft', plan,
+                           runtime_profile=record.get('runtime_profile'))
     return record
 
 
@@ -773,7 +776,8 @@ def verify_live(out):
             'Four active mirrors must be equal and physically independent')
     for asset in record['assets']:
         require(nd.digest(target / asset['relative']) == asset['sha256'], 'Draft-owned media changed')
-    resources.verify_files(record.get('native_resources', []), target, plan)
+    resources.verify_files(record.get('native_resources', []), target, plan,
+                           runtime_profile=runtime['runtime_profile'])
     font_files = fonts.verify_assets(font_assets, timeline, target, target) if font_assets is not None else 0
     root = read_json(nd.DRAFT_ROOT / 'root_meta_info.json')
     entries = [e for e in root['all_draft_store'] if e.get('draft_id') == record['draft_id']]

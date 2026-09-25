@@ -23,7 +23,7 @@ class RuntimeProfiles(unittest.TestCase):
         self.assertEqual(profiles.PROFILES['11.4.2'],
                          '632c8ddd09ff4a54f876cd8142eb505055ee26d944199506b230949b7e106bd1')
 
-    def test_build481_is_a_distinct_exact_draft_only_profile(self):
+    def test_build481_is_a_distinct_exact_basic_export_profile(self):
         profile = profiles.RUNTIME_IDENTITIES[profiles.PROFILE_1140_BUILD481]
         info = {'CFBundleShortVersionString': '11.4.0', 'CFBundleVersion': '481',
                 'CFBundleIdentifier': 'com.lemon.lvpro'}
@@ -32,15 +32,34 @@ class RuntimeProfiles(unittest.TestCase):
         self.assertEqual(profile['profile_id'], 'jy14-headless-macos-11.4.0-build481')
         self.assertEqual(profile['capabilities'], {
             'draft_create': True, 'publish': True, 'verify': True,
-            'existing_edit': True, 'native_export': False, 'native_resources': False,
+            'existing_edit': True, 'native_export': True, 'native_resources': False,
         })
-        self.assertNotIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
+        self.assertIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
         evidence = profiles.resource_evidence_for(profiles.PROFILE_1140_BUILD481)
         self.assertEqual(set(evidence), set(profiles.RESOURCE_CAPABILITY_NAMES))
         self.assertEqual(evidence['subtitles'], {
-            'offline_build': 'verified', 'native_reopen': 'unverified',
-            'native_export': 'blocked',
+            'offline_build': 'verified', 'native_reopen': 'partial',
+            'native_export': 'partial',
         })
+        self.assertEqual(evidence['fonts'], {
+            'offline_build': 'verified', 'native_reopen': 'partial',
+            'native_export': 'partial',
+        })
+        self.assertEqual(evidence['keyframes'], {
+            'offline_build': 'verified', 'native_reopen': 'verified',
+            'native_export': 'verified',
+        })
+        self.assertEqual(evidence['masks'], {
+            'offline_build': 'verified', 'native_reopen': 'verified',
+            'native_export': 'verified',
+        })
+        for kind in ('transitions', 'effects'):
+            self.assertEqual(evidence[kind], {
+                'offline_build': 'verified', 'native_reopen': 'verified',
+                'native_export': 'verified',
+            })
+        self.assertFalse(profile['capabilities']['native_resources'])
+        self.assertTrue(profile['capabilities']['native_export'])
         self.assertTrue(all(set(layers) == set(profiles.EVIDENCE_LAYERS)
                             for layers in evidence.values()))
         self.assertEqual(profiles.resource_evidence_for(
@@ -73,12 +92,14 @@ class RuntimeProfiles(unittest.TestCase):
         for v in ('11.5.0','11.4.2'):
             p=profiles.PROFILE_PREFIX+v
             profiles.validate_export_profiles(p,p)
+        profiles.validate_export_profiles(profiles.PROFILE_1140_BUILD481,
+                                          profiles.PROFILE_1140_BUILD481)
         for a,b in [('11.4.2','11.5.0'),('11.5.0','11.4.2'),('11.4.0','11.4.0'),('11.5.1','11.5.1')]:
             with self.subTest(a=a,b=b),self.assertRaises(ValueError):
                 profiles.validate_export_profiles(profiles.PROFILE_PREFIX+a,profiles.PROFILE_PREFIX+b)
-        with self.assertRaisesRegex(ValueError, 'capability'):
+        with self.assertRaisesRegex(ValueError, 'differs'):
             profiles.validate_export_profiles(profiles.PROFILE_1140_BUILD481,
-                                              profiles.PROFILE_1140_BUILD481)
+                                              profiles.PROFILE_PREFIX+'11.4.2')
 
     def test_resource_pairing_keeps_capture_provenance(self):
         for p in profiles.EXPORT_PROFILES:

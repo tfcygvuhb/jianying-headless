@@ -1,9 +1,9 @@
 """Exact Jianying application identities and fail-closed capabilities.
 
 Compatibility is selected by the complete application identity, never by a
-version prefix.  The 11.4.0 Build 481 profile is intentionally draft-only:
-its codec and native ABI must be reviewed independently before any native
-export, resource, or existing-draft operation is enabled.
+version prefix. Build 481 enables draft creation, local homepage registration,
+verification, existing-draft editing, and basic native export. Advanced native
+resources remain gated until their evidence is complete.
 """
 
 PRIMARY_VERSION = '11.5.0'
@@ -38,12 +38,11 @@ PROFILES = {
 
 _FULL_DRAFT_CAPABILITIES = {
     'draft_create': True, 'publish': True, 'verify': True,
-    'existing_edit': True,
     'existing_edit': True, 'native_export': True, 'native_resources': True,
 }
 _BUILD481_CAPABILITIES = {
     'draft_create': True, 'publish': True, 'verify': True,
-    'existing_edit': True, 'native_export': False, 'native_resources': False,
+    'existing_edit': True, 'native_export': True, 'native_resources': False,
 }
 _LEGACY_DISABLED_CAPABILITIES = {name: False for name in CAPABILITY_NAMES}
 
@@ -53,14 +52,14 @@ _LEGACY_DISABLED_CAPABILITIES = {name: False for name in CAPABILITY_NAMES}
 # to ``verified``, ``partial``, ``blocked`` and ``unverified`` so reports and
 # tests cannot silently reinterpret prose as a capability grant.
 _BUILD481_RESOURCE_EVIDENCE = {
-    'fonts': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
-    'subtitles': {'offline_build': 'verified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
-    'transitions': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'fonts': {'offline_build': 'verified', 'native_reopen': 'partial', 'native_export': 'partial'},
+    'subtitles': {'offline_build': 'verified', 'native_reopen': 'partial', 'native_export': 'partial'},
+    'transitions': {'offline_build': 'verified', 'native_reopen': 'verified', 'native_export': 'verified'},
     'filters': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
-    'effects': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'effects': {'offline_build': 'verified', 'native_reopen': 'verified', 'native_export': 'verified'},
     'stickers': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
-    'masks': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
-    'keyframes': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'masks': {'offline_build': 'verified', 'native_reopen': 'verified', 'native_export': 'verified'},
+    'keyframes': {'offline_build': 'verified', 'native_reopen': 'verified', 'native_export': 'verified'},
     'compound_clips': {'offline_build': 'unverified', 'native_reopen': 'blocked', 'native_export': 'blocked'},
     'adjustment_layers': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
     'member_online_resources': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},

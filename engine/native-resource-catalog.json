@@ -5,36 +5,117 @@
   "resources": {
     "mask/circle": {
       "source": "@home/Movies/JianyingPro/User Data/Cache/effect/82432977/3ab1c47350d987c8ad415497e020a38b",
-      "files": [
-        "amazingfeature/ImageBusinessSlider.json",
-        "amazingfeature/LuaRTTI.MarkGen.lua",
-        "amazingfeature/content.json",
-        "amazingfeature/effects/lumi_circle_mask/lua/ImageBusinessSlider.lua",
-        "amazingfeature/effects/lumi_circle_mask/lua/Process.lua",
-        "amazingfeature/effects/lumi_circle_mask/material/fxaa.material",
-        "amazingfeature/effects/lumi_circle_mask/material/picture.material",
-        "amazingfeature/effects/lumi_circle_mask/mesh/SP_Quad.mesh",
-        "amazingfeature/effects/lumi_circle_mask/rt/NewScreenRT.rt",
-        "amazingfeature/effects/lumi_circle_mask/xshader/Fxaa.frag",
-        "amazingfeature/effects/lumi_circle_mask/xshader/Fxaa.vert",
-        "amazingfeature/effects/lumi_circle_mask/xshader/Fxaa.xshader",
-        "amazingfeature/effects/lumi_circle_mask/xshader/picture.frag",
-        "amazingfeature/effects/lumi_circle_mask/xshader/picture.vert",
-        "amazingfeature/effects/lumi_circle_mask/xshader/picture.xshader",
-        "amazingfeature/js-meta.json",
-        "amazingfeature/lua-meta.json",
-        "amazingfeature/lua/ImageBusinessSlider.lua",
-        "amazingfeature/lua/LumiFamily/LumiManager.lua",
-        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua",
-        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua",
-        "amazingfeature/main.scene",
-        "amazingfeature/prefabs/circleMaskProcess.prefab",
-        "amazingfeature/rt/outputTex.rt",
-        "amazingfeature/scene.config",
-        "amazingfeature/sticker.config",
-        "config.json"
-      ],
-      "tree_sha256": "79af556f8342fd6710d40f1fc77d695f2064bb3f90549a2bff1ed06f9b3581b0",
+      "files": {
+        "amazingfeature/ImageBusinessSlider.json": {
+          "sha256": "edb3dc39e93b7782fcccb4693e87809a39a3f7132f58a94d29db9d77d0e78433",
+          "size": 33
+        },
+        "amazingfeature/LuaRTTI.MarkGen.lua": {
+          "sha256": "92c21dcd89568286f774729df77109e6cb409920e9628f7ee1aff8fd804f72c3",
+          "size": 198
+        },
+        "amazingfeature/content.json": {
+          "sha256": "0a5224a6dd9b0523bd72678a5dc08133251260be8e3a37d2cf33f12badafe234",
+          "size": 217
+        },
+        "amazingfeature/effects/lumi_circle_mask/lua/ImageBusinessSlider.lua": {
+          "sha256": "cf2de7028500c626d856db95018799e01e56da610b288caa5d6f6ea838f90427",
+          "size": 777
+        },
+        "amazingfeature/effects/lumi_circle_mask/lua/Process.lua": {
+          "sha256": "1b2f57e8d577925a1a83f7a8da3e445e18796a47d9b6b564a86a2d3a0a4a27dd",
+          "size": 3847
+        },
+        "amazingfeature/effects/lumi_circle_mask/material/fxaa.material": {
+          "sha256": "f8c23b6315956de269b47ed4e6ff65b0af289109159a364911d8ae7281f0642f",
+          "size": 686
+        },
+        "amazingfeature/effects/lumi_circle_mask/material/picture.material": {
+          "sha256": "b59bb0542054e587e9da44b88135c8119c05d24d7d3dba9054e8edf05866e86a",
+          "size": 743
+        },
+        "amazingfeature/effects/lumi_circle_mask/mesh/SP_Quad.mesh": {
+          "sha256": "0c3c40259eada34798e0dd3f1dd57f52c9961977fbb5d7b7c114dd1167269472",
+          "size": 1043
+        },
+        "amazingfeature/effects/lumi_circle_mask/rt/NewScreenRT.rt": {
+          "sha256": "af8e8b1758bfe4a2e7c8d2eed2c2e34ff165597802a35f1710bdd87864785ba8",
+          "size": 586
+        },
+        "amazingfeature/effects/lumi_circle_mask/xshader/Fxaa.frag": {
+          "sha256": "2e551e344476e2e2459d9c71d3277d713edebbb1bd9e079d36adfa53677461c6",
+          "size": 11532
+        },
+        "amazingfeature/effects/lumi_circle_mask/xshader/Fxaa.vert": {
+          "sha256": "8ecb57c14712af005b5584608f923d9296f7e8e7dec9be03d6dd21bd73ab37c0",
+          "size": 180
+        },
+        "amazingfeature/effects/lumi_circle_mask/xshader/Fxaa.xshader": {
+          "sha256": "d5ed8c14d66b60206e92dcfe3b3a6a4038b2eafb0d7aa9b812a70a1a2a254ee3",
+          "size": 2283
+        },
+        "amazingfeature/effects/lumi_circle_mask/xshader/picture.frag": {
+          "sha256": "d5322c4f7ae90284a68706941bde438ac9e1fa8a634b5ed9f150e77561a373ce",
+          "size": 977
+        },
+        "amazingfeature/effects/lumi_circle_mask/xshader/picture.vert": {
+          "sha256": "7eacb261d060fe51c7b19617028e031cb0ad67ca37e25e3f3afe9d37e1decfe9",
+          "size": 483
+        },
+        "amazingfeature/effects/lumi_circle_mask/xshader/picture.xshader": {
+          "sha256": "c88eba651cb4e6b5c1b8bfbea2725194c70cfbb6c9d28ba714aae37a54b7254d",
+          "size": 1404
+        },
+        "amazingfeature/js-meta.json": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "size": 2
+        },
+        "amazingfeature/lua/ImageBusinessSlider.lua": {
+          "sha256": "cf2de7028500c626d856db95018799e01e56da610b288caa5d6f6ea838f90427",
+          "size": 777
+        },
+        "amazingfeature/lua/LumiFamily/LumiManager.lua": {
+          "sha256": "59651651476e6cb435452ede1ac4e9e2a7003ac7832692df77c7de2abc72eb75",
+          "size": 4898
+        },
+        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua": {
+          "sha256": "cd4295455c9c8ad7c5c1d31e8c128b8d581ceaad2227315e5c9b8c5f01882423",
+          "size": 14607
+        },
+        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua": {
+          "sha256": "f40b8f07255e9d1c62981ea943e1e5a1fe1ef54a587c5d92e8a3f0980949a2e3",
+          "size": 1204
+        },
+        "amazingfeature/lua-meta.json": {
+          "sha256": "1422e104e41c420071cd894f27615539e62b9019b8c7ed86374a9df442ac6e8a",
+          "size": 3043
+        },
+        "amazingfeature/main.scene": {
+          "sha256": "819f3a3fbc23b813f8895e1ca3f77c3015503358174ff0ee6e2f5d390d260776",
+          "size": 5225
+        },
+        "amazingfeature/prefabs/circleMaskProcess.prefab": {
+          "sha256": "99ca82a546a37ae7fc9db0cf2277d8c125a09de90e1d55264a93de8a11436d93",
+          "size": 4061
+        },
+        "amazingfeature/rt/outputTex.rt": {
+          "sha256": "128b3ef869feaaa881f462592e335bc0b667afae14aa0c94e5629dd61b9b7c83",
+          "size": 527
+        },
+        "amazingfeature/scene.config": {
+          "sha256": "10e224fdb524112c2aac028710ee79a83db0bc59bddb9723a3477ccbb549e265",
+          "size": 320
+        },
+        "amazingfeature/sticker.config": {
+          "sha256": "c2e398fb02d37ea98d2dffe986c47975e76b3fff8d7df2085986b10eb07b48d9",
+          "size": 300
+        },
+        "config.json": {
+          "sha256": "5fe961c50ad139dc256dc2dbcedcc08bd27a5ba22d960e4af9cc46bb1721ade8",
+          "size": 245
+        }
+      },
+      "tree_sha256": "755f487494e041e0adceaff3c1a747b1238773c071fe3297d1911112cccd3946",
       "material": {
         "type": "mask",
         "category": "video",
@@ -53,28 +134,85 @@
     },
     "mask/rectangle": {
       "source": "@home/Movies/JianyingPro/User Data/Cache/effect/82432980/02b8999168d121538a98ea59127483ef",
-      "files": [
-        "amazingfeature/LuaRTTI.MarkGen.lua",
-        "amazingfeature/content.json",
-        "amazingfeature/effects/lumi_rectangle_mask/lua/Process.lua",
-        "amazingfeature/effects/lumi_rectangle_mask/material/picture.material",
-        "amazingfeature/effects/lumi_rectangle_mask/mesh/SP_Quad.mesh",
-        "amazingfeature/effects/lumi_rectangle_mask/rt/outputTex.rt",
-        "amazingfeature/effects/lumi_rectangle_mask/xshader/picture.frag",
-        "amazingfeature/effects/lumi_rectangle_mask/xshader/picture.vert",
-        "amazingfeature/effects/lumi_rectangle_mask/xshader/picture.xshader",
-        "amazingfeature/js-meta.json",
-        "amazingfeature/lua-meta.json",
-        "amazingfeature/lua/LumiFamily/LumiManager.lua",
-        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua",
-        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua",
-        "amazingfeature/main.scene",
-        "amazingfeature/prefabs/rectangleMaskProcess.prefab",
-        "amazingfeature/rt/outputTex.rt",
-        "amazingfeature/sticker.config",
-        "config.json"
-      ],
-      "tree_sha256": "6c252a774f3405ec17b73c5e3593f1febf3913a772d1d8ee23be0f7db0524da3",
+      "files": {
+        "amazingfeature/LuaRTTI.MarkGen.lua": {
+          "sha256": "92c21dcd89568286f774729df77109e6cb409920e9628f7ee1aff8fd804f72c3",
+          "size": 198
+        },
+        "amazingfeature/content.json": {
+          "sha256": "d220f599098bbe56ff0a0aba518c8f108ed0974078919671b87b2a9e53d14ad8",
+          "size": 217
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/lua/Process.lua": {
+          "sha256": "b55bf55b845206cf867ccf9cabb83212890d63c3f76f285312109dbd520be4f2",
+          "size": 5633
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/material/picture.material": {
+          "sha256": "9e3a7c6dfad4a1b0525c0c18c30da91bc7734002ac72e622288e8c4ad7d57a03",
+          "size": 957
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/mesh/SP_Quad.mesh": {
+          "sha256": "8cb9e09decaad4c3eb863342cfbf1791dfde8a19b9a8ccac85a0d2eb8f27dd92",
+          "size": 1043
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/rt/outputTex.rt": {
+          "sha256": "56bb1a6e27cbc2011559cb0f40eef5941240398b9486b1800db14b918a84491d",
+          "size": 527
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/xshader/picture.frag": {
+          "sha256": "8c765f14bb5e8b3c26b2edbab67138405c42df6e191f6f3db18b7d0b817dd2fa",
+          "size": 1476
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/xshader/picture.vert": {
+          "sha256": "77afd2d147c8db65e28acb1c6b57de238a893c16523dbd6ccc2f9bc4b23e3d92",
+          "size": 639
+        },
+        "amazingfeature/effects/lumi_rectangle_mask/xshader/picture.xshader": {
+          "sha256": "33987bb7e7192dd72baa741d4b4f4772cd92c1cc9704c661eca7fd151c8c332c",
+          "size": 1410
+        },
+        "amazingfeature/js-meta.json": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "size": 2
+        },
+        "amazingfeature/lua/LumiFamily/LumiManager.lua": {
+          "sha256": "59651651476e6cb435452ede1ac4e9e2a7003ac7832692df77c7de2abc72eb75",
+          "size": 4898
+        },
+        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua": {
+          "sha256": "cd4295455c9c8ad7c5c1d31e8c128b8d581ceaad2227315e5c9b8c5f01882423",
+          "size": 14607
+        },
+        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua": {
+          "sha256": "f40b8f07255e9d1c62981ea943e1e5a1fe1ef54a587c5d92e8a3f0980949a2e3",
+          "size": 1204
+        },
+        "amazingfeature/lua-meta.json": {
+          "sha256": "edf443b1d7149c258c748691435219f2e86e541e2e52f8e77e81e463c8edadbf",
+          "size": 3043
+        },
+        "amazingfeature/main.scene": {
+          "sha256": "b434268f417659b428220d3c77ba89373838843d2f5efe6c05aa53aa36072af2",
+          "size": 4367
+        },
+        "amazingfeature/prefabs/rectangleMaskProcess.prefab": {
+          "sha256": "432606f44532518b685581a0eb68a7700980800ee7d9d1dc96e5485762bc81bd",
+          "size": 2434
+        },
+        "amazingfeature/rt/outputTex.rt": {
+          "sha256": "56bb1a6e27cbc2011559cb0f40eef5941240398b9486b1800db14b918a84491d",
+          "size": 527
+        },
+        "amazingfeature/sticker.config": {
+          "sha256": "c2e398fb02d37ea98d2dffe986c47975e76b3fff8d7df2085986b10eb07b48d9",
+          "size": 300
+        },
+        "config.json": {
+          "sha256": "ad262fc4e3cc1f840fead43886a381d094e6d3ca6dd795f251ebec7217912985",
+          "size": 243
+        }
+      },
+      "tree_sha256": "c8d500f2840e387e372744f6f44e1d2128e29c94df3dc482cf18a8de7d2f0ec6",
       "material": {
         "type": "mask",
         "category": "video",
@@ -93,28 +231,85 @@
     },
     "mask/line": {
       "source": "@home/Movies/JianyingPro/User Data/Cache/effect/82432976/4c6a0ef5de6a844342d40330e00c59eb",
-      "files": [
-        "amazingfeature/LuaRTTI.MarkGen.lua",
-        "amazingfeature/content.json",
-        "amazingfeature/effects/lumi_linear_mask/lua/Process.lua",
-        "amazingfeature/effects/lumi_linear_mask/material/picture.material",
-        "amazingfeature/effects/lumi_linear_mask/mesh/SP_Quad.mesh",
-        "amazingfeature/effects/lumi_linear_mask/xshader/picture.frag",
-        "amazingfeature/effects/lumi_linear_mask/xshader/picture.vert",
-        "amazingfeature/effects/lumi_linear_mask/xshader/picture.xshader",
-        "amazingfeature/js-meta.json",
-        "amazingfeature/lua-meta.json",
-        "amazingfeature/lua/LumiFamily/LumiManager.lua",
-        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua",
-        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua",
-        "amazingfeature/main.scene",
-        "amazingfeature/prefabs/linearMaskProcess.prefab",
-        "amazingfeature/rt/outputTex.rt",
-        "amazingfeature/scene.config",
-        "amazingfeature/sticker.config",
-        "config.json"
-      ],
-      "tree_sha256": "e4a2402cfde66a7ddb7d63bd8ada57c101f72c0db6f5794c964e57f75118d628",
+      "files": {
+        "amazingfeature/LuaRTTI.MarkGen.lua": {
+          "sha256": "92c21dcd89568286f774729df77109e6cb409920e9628f7ee1aff8fd804f72c3",
+          "size": 198
+        },
+        "amazingfeature/content.json": {
+          "sha256": "859c0d0d6215fe5cbd5eda93ef60b0be739c477f9b6790362e2ab815433422b5",
+          "size": 216
+        },
+        "amazingfeature/effects/lumi_linear_mask/lua/Process.lua": {
+          "sha256": "bd10c4ce761cc4a4e869dfd89e68f2921258bcc4df6addb83a296c8de943709a",
+          "size": 3012
+        },
+        "amazingfeature/effects/lumi_linear_mask/material/picture.material": {
+          "sha256": "8dc324912ba51b45b54a08cd64a4ff4ba721eba0090843f1e99c7620cdf4e99e",
+          "size": 718
+        },
+        "amazingfeature/effects/lumi_linear_mask/mesh/SP_Quad.mesh": {
+          "sha256": "593d830c8812fbe25d317eb078db2ff5ba85679a0d7bdbbdeb9d50612f44c883",
+          "size": 1019
+        },
+        "amazingfeature/effects/lumi_linear_mask/xshader/picture.frag": {
+          "sha256": "010c45bac4222d85a5b0e80cf30cbfce81cc46140e419197d76b78ef8ae8b6e4",
+          "size": 802
+        },
+        "amazingfeature/effects/lumi_linear_mask/xshader/picture.vert": {
+          "sha256": "03ab13c590aebc62edb7463abdf717209394b34bdad90b688f983f8d49ae92c0",
+          "size": 345
+        },
+        "amazingfeature/effects/lumi_linear_mask/xshader/picture.xshader": {
+          "sha256": "a420bbd6e7833289b8f21fca7905e17a06cb9933b8b3d28e3c9d50b86c245669",
+          "size": 1330
+        },
+        "amazingfeature/js-meta.json": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "size": 2
+        },
+        "amazingfeature/lua/LumiFamily/LumiManager.lua": {
+          "sha256": "59651651476e6cb435452ede1ac4e9e2a7003ac7832692df77c7de2abc72eb75",
+          "size": 4898
+        },
+        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua": {
+          "sha256": "cd4295455c9c8ad7c5c1d31e8c128b8d581ceaad2227315e5c9b8c5f01882423",
+          "size": 14607
+        },
+        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua": {
+          "sha256": "f40b8f07255e9d1c62981ea943e1e5a1fe1ef54a587c5d92e8a3f0980949a2e3",
+          "size": 1204
+        },
+        "amazingfeature/lua-meta.json": {
+          "sha256": "cd12c1c7bf37e29be359b2f20f120af686ae8566a3bb35e76c68c9f4ff196af4",
+          "size": 3043
+        },
+        "amazingfeature/main.scene": {
+          "sha256": "f8cc528944b6aa668f64762476f3eeea950803a987f8b96f152fca67466ae8b7",
+          "size": 3632
+        },
+        "amazingfeature/prefabs/linearMaskProcess.prefab": {
+          "sha256": "806cab48d2d3faaaee45290f6bcd84f8a6305c964c8f73f3b3f561ab2ce341d2",
+          "size": 2351
+        },
+        "amazingfeature/rt/outputTex.rt": {
+          "sha256": "27fab53ded2de4ec431f09d17528298210185914966a91b6e6be4c1f501e3968",
+          "size": 510
+        },
+        "amazingfeature/scene.config": {
+          "sha256": "daa4eb8735bcabc75630989ef6f365d13fe937e57cf42b05b529f99fecc8409c",
+          "size": 288
+        },
+        "amazingfeature/sticker.config": {
+          "sha256": "c2e398fb02d37ea98d2dffe986c47975e76b3fff8d7df2085986b10eb07b48d9",
+          "size": 300
+        },
+        "config.json": {
+          "sha256": "e53aa219d9b6be48a5198d692c5df6094eeb18a6da27398743ca0e795c81c810",
+          "size": 245
+        }
+      },
+      "tree_sha256": "e548c277fb2a6e06739855160a985a676221b19e9c4a65b60c8d75df1aea3c29",
       "material": {
         "type": "mask",
         "category": "video",
@@ -133,28 +328,85 @@
     },
     "mask/mirror": {
       "source": "@home/Movies/JianyingPro/User Data/Cache/effect/82432979/95ac211c99063c41b86b9b63742f4a6d",
-      "files": [
-        "amazingfeature/LuaRTTI.MarkGen.lua",
-        "amazingfeature/content.json",
-        "amazingfeature/effects/lumi_mirror_mask/lua/Process.lua",
-        "amazingfeature/effects/lumi_mirror_mask/material/picture.material",
-        "amazingfeature/effects/lumi_mirror_mask/mesh/SP_Quad.mesh",
-        "amazingfeature/effects/lumi_mirror_mask/xshader/picture.frag",
-        "amazingfeature/effects/lumi_mirror_mask/xshader/picture.vert",
-        "amazingfeature/effects/lumi_mirror_mask/xshader/picture.xshader",
-        "amazingfeature/js-meta.json",
-        "amazingfeature/lua-meta.json",
-        "amazingfeature/lua/LumiFamily/LumiManager.lua",
-        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua",
-        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua",
-        "amazingfeature/main.scene",
-        "amazingfeature/prefabs/mirrorMaskProcess.prefab",
-        "amazingfeature/rt/outputTex.rt",
-        "amazingfeature/scene.config",
-        "amazingfeature/sticker.config",
-        "config.json"
-      ],
-      "tree_sha256": "cdf2bade42661b64b277e06634c1e6cda7ece18b7df4cdb6c2c2e98b3281dfc4",
+      "files": {
+        "amazingfeature/LuaRTTI.MarkGen.lua": {
+          "sha256": "92c21dcd89568286f774729df77109e6cb409920e9628f7ee1aff8fd804f72c3",
+          "size": 198
+        },
+        "amazingfeature/content.json": {
+          "sha256": "e37c69a41153807d98f804586fcc295c03f7fa762393edd4285c0b11b3974c7d",
+          "size": 215
+        },
+        "amazingfeature/effects/lumi_mirror_mask/lua/Process.lua": {
+          "sha256": "29f299e1ff2c1c2987a8fbb1a8293fd71302d1d1ac7a18056bf457773693742b",
+          "size": 3241
+        },
+        "amazingfeature/effects/lumi_mirror_mask/material/picture.material": {
+          "sha256": "f933ea824374ef1e1afff0869faad0173afcc73f5b95b4c0feead9c2181ce2eb",
+          "size": 743
+        },
+        "amazingfeature/effects/lumi_mirror_mask/mesh/SP_Quad.mesh": {
+          "sha256": "0c3c40259eada34798e0dd3f1dd57f52c9961977fbb5d7b7c114dd1167269472",
+          "size": 1043
+        },
+        "amazingfeature/effects/lumi_mirror_mask/xshader/picture.frag": {
+          "sha256": "991b6546fb9653dc9c213a2249f14fa156637361fc5f52ca6c8e4f6cdc5fc08b",
+          "size": 957
+        },
+        "amazingfeature/effects/lumi_mirror_mask/xshader/picture.vert": {
+          "sha256": "d4d614ccca0c1e038f7275cad47c99391e88275dc0cf72161c9bf81036feeb70",
+          "size": 344
+        },
+        "amazingfeature/effects/lumi_mirror_mask/xshader/picture.xshader": {
+          "sha256": "17627fd8c1506214956271d59ea790059bc286e2f60bb0c66a80644f8d85cd11",
+          "size": 1404
+        },
+        "amazingfeature/js-meta.json": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "size": 2
+        },
+        "amazingfeature/lua/LumiFamily/LumiManager.lua": {
+          "sha256": "59651651476e6cb435452ede1ac4e9e2a7003ac7832692df77c7de2abc72eb75",
+          "size": 4898
+        },
+        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua": {
+          "sha256": "cd4295455c9c8ad7c5c1d31e8c128b8d581ceaad2227315e5c9b8c5f01882423",
+          "size": 14607
+        },
+        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua": {
+          "sha256": "f40b8f07255e9d1c62981ea943e1e5a1fe1ef54a587c5d92e8a3f0980949a2e3",
+          "size": 1204
+        },
+        "amazingfeature/lua-meta.json": {
+          "sha256": "9b9d86a8d318755ea53b8205af4c5ccdbb8c1a042a86f5d5d85e3963ff2aaae7",
+          "size": 3043
+        },
+        "amazingfeature/main.scene": {
+          "sha256": "f431f5cab2e6d2c8e46c66c9576a8007aa02ca6797af9b55797c6b58c15020c7",
+          "size": 3676
+        },
+        "amazingfeature/prefabs/mirrorMaskProcess.prefab": {
+          "sha256": "42465a8ef5c04c5b7a5301dfb6af284f700a89e39657cef63968bcfd4f63b1a9",
+          "size": 2419
+        },
+        "amazingfeature/rt/outputTex.rt": {
+          "sha256": "de4487a2c5e611ab50eb28eaeb67d3e25b7e425abef900859fc1e190eafca249",
+          "size": 527
+        },
+        "amazingfeature/scene.config": {
+          "sha256": "daa4eb8735bcabc75630989ef6f365d13fe937e57cf42b05b529f99fecc8409c",
+          "size": 288
+        },
+        "amazingfeature/sticker.config": {
+          "sha256": "c2e398fb02d37ea98d2dffe986c47975e76b3fff8d7df2085986b10eb07b48d9",
+          "size": 300
+        },
+        "config.json": {
+          "sha256": "04f8ca432df5091774181a80a32aaaf81585af49a8dddfd996e19805bc4479cf",
+          "size": 245
+        }
+      },
+      "tree_sha256": "36365677e9ef362fdba0a5a9169cd9427c85f3ebecfc16f98c7d17a21bef3977",
       "material": {
         "type": "mask",
         "category": "video",
@@ -173,35 +425,113 @@
     },
     "mask/star": {
       "source": "@home/Movies/JianyingPro/User Data/Cache/effect/83244852/7ff81ba985da9aae07b69c5b77ea7e9a",
-      "files": [
-        "amazingfeature/LuaRTTI.MarkGen.lua",
-        "amazingfeature/content.json",
-        "amazingfeature/effects/lumi_star_mask/lua/Process.lua",
-        "amazingfeature/effects/lumi_star_mask/material/mask.material",
-        "amazingfeature/effects/lumi_star_mask/material/picture.material",
-        "amazingfeature/effects/lumi_star_mask/mesh/SP_Quad.mesh",
-        "amazingfeature/effects/lumi_star_mask/rt/midRT.rt",
-        "amazingfeature/effects/lumi_star_mask/xshader/mask.frag",
-        "amazingfeature/effects/lumi_star_mask/xshader/mask.vert",
-        "amazingfeature/effects/lumi_star_mask/xshader/mask.xshader",
-        "amazingfeature/effects/lumi_star_mask/xshader/picture.frag",
-        "amazingfeature/effects/lumi_star_mask/xshader/picture.vert",
-        "amazingfeature/effects/lumi_star_mask/xshader/picture.xshader",
-        "amazingfeature/image/mask.png",
-        "amazingfeature/image/mask.png.meta",
-        "amazingfeature/js-meta.json",
-        "amazingfeature/lua-meta.json",
-        "amazingfeature/lua/LumiFamily/LumiManager.lua",
-        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua",
-        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua",
-        "amazingfeature/main.scene",
-        "amazingfeature/prefabs/startMaskProcess.prefab",
-        "amazingfeature/rt/outputTex.rt",
-        "amazingfeature/sticker.config",
-        "config.json",
-        "material.svg"
-      ],
-      "tree_sha256": "a2d52d0311d90cb8297f81c4ad0ce22db83c462c73920cd72b09931030cca31c",
+      "files": {
+        "amazingfeature/LuaRTTI.MarkGen.lua": {
+          "sha256": "92c21dcd89568286f774729df77109e6cb409920e9628f7ee1aff8fd804f72c3",
+          "size": 198
+        },
+        "amazingfeature/content.json": {
+          "sha256": "8860110e238d331648ba178fc65c2df5460b2cb217849e1d8bee08154269a46a",
+          "size": 214
+        },
+        "amazingfeature/effects/lumi_star_mask/lua/Process.lua": {
+          "sha256": "b2d2c7afe094e93c9f512487d5270b995112cc0d42a8609713946dce1fc2f283",
+          "size": 4092
+        },
+        "amazingfeature/effects/lumi_star_mask/material/mask.material": {
+          "sha256": "7515e15ce52d88840b614c3e459c1125b9c67f492d0b9bab269b1c4cac10ae08",
+          "size": 910
+        },
+        "amazingfeature/effects/lumi_star_mask/material/picture.material": {
+          "sha256": "145b498c15284c58fa22aef280345a8fa9b14463f407f9473c2439effd302e1f",
+          "size": 781
+        },
+        "amazingfeature/effects/lumi_star_mask/mesh/SP_Quad.mesh": {
+          "sha256": "454d21a05fd60a5eb9f27a46b90212be995eb87554439423de9ab1ecc75a5575",
+          "size": 1043
+        },
+        "amazingfeature/effects/lumi_star_mask/rt/midRT.rt": {
+          "sha256": "5363824b940ed69426b34ef163871854557e5b4f920d9bf4adf4ecaec3910d80",
+          "size": 586
+        },
+        "amazingfeature/effects/lumi_star_mask/xshader/mask.frag": {
+          "sha256": "47d7f3a9c3ddd8f3b676bb80e838bd8c93c8d1a1aa8457c755ce9f6ead5ecf6c",
+          "size": 417
+        },
+        "amazingfeature/effects/lumi_star_mask/xshader/mask.vert": {
+          "sha256": "e55f9f7b5e2ce595f794ea38060d645f39d309655424f5feeec1670418428971",
+          "size": 606
+        },
+        "amazingfeature/effects/lumi_star_mask/xshader/mask.xshader": {
+          "sha256": "00bf2c911ba4141f6658eda394c4d91fd77b4456cfa7177018d0f9da11b97650",
+          "size": 1188
+        },
+        "amazingfeature/effects/lumi_star_mask/xshader/picture.frag": {
+          "sha256": "20c5e577c3effd25106853461af142cecf26788e7bab90fe9cd87a4490e165d5",
+          "size": 345
+        },
+        "amazingfeature/effects/lumi_star_mask/xshader/picture.vert": {
+          "sha256": "b5d71a4dedfed1a911a946e4689f422b307cf1a64181d07b2afaa72702d6c975",
+          "size": 168
+        },
+        "amazingfeature/effects/lumi_star_mask/xshader/picture.xshader": {
+          "sha256": "6d0e45a3de7da81aec57a10418e3aac5f1b3367290758a0f4b670d73c018f4cd",
+          "size": 1197
+        },
+        "amazingfeature/image/mask.png": {
+          "sha256": "c5d40eb242af23a8661570a08c3cdf692a6c5718f0fd7a523571a3f490201de4",
+          "size": 259839
+        },
+        "amazingfeature/image/mask.png.meta": {
+          "sha256": "c2b02591bd0600ca242a9ffa9bb6f38b17baccfe71c13b5c1334df2be7c52dcf",
+          "size": 389
+        },
+        "amazingfeature/js-meta.json": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "size": 2
+        },
+        "amazingfeature/lua/LumiFamily/LumiManager.lua": {
+          "sha256": "59651651476e6cb435452ede1ac4e9e2a7003ac7832692df77c7de2abc72eb75",
+          "size": 4898
+        },
+        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua": {
+          "sha256": "cd4295455c9c8ad7c5c1d31e8c128b8d581ceaad2227315e5c9b8c5f01882423",
+          "size": 14607
+        },
+        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua": {
+          "sha256": "f40b8f07255e9d1c62981ea943e1e5a1fe1ef54a587c5d92e8a3f0980949a2e3",
+          "size": 1204
+        },
+        "amazingfeature/lua-meta.json": {
+          "sha256": "a9fb4a848cecac539caba1fa56d5ba20a6f6338768a01a5ea7398392f949f0cc",
+          "size": 3123
+        },
+        "amazingfeature/main.scene": {
+          "sha256": "6eb0836188a8c0082c81d37e6fe2643779d77b19e194ab47dcae8cfc79558eab",
+          "size": 5177
+        },
+        "amazingfeature/prefabs/startMaskProcess.prefab": {
+          "sha256": "6370e965c07d9ad1d86f8f43bcd4a3e4b60a38fbf31136036a1eb5955a066a58",
+          "size": 4044
+        },
+        "amazingfeature/rt/outputTex.rt": {
+          "sha256": "6b1eb1e9ae5cbd0615d94acd4d8ded41be99386b6c35c70eab8f8f9c1fa2f723",
+          "size": 527
+        },
+        "amazingfeature/sticker.config": {
+          "sha256": "c2e398fb02d37ea98d2dffe986c47975e76b3fff8d7df2085986b10eb07b48d9",
+          "size": 300
+        },
+        "config.json": {
+          "sha256": "d57888cfae88170e3735d02578194f50f178031ec16992f28565b0a8981ca7a1",
+          "size": 243
+        },
+        "material.svg": {
+          "sha256": "2a8796b00e28b19f1a615d438e0f9e38078a8aabc08d4121a8491ced422dcd3a",
+          "size": 1805
+        }
+      },
+      "tree_sha256": "ba3fd7ebd571eba4f3383343eb7b8f6f504dfef8d6477af3bbe49bd8c67f2a8e",
       "material": {
         "type": "mask",
         "category": "video",
@@ -220,35 +550,113 @@
     },
     "mask/heart": {
       "source": "@home/Movies/JianyingPro/User Data/Cache/effect/83244815/27ae3c55bb97e470a75f61a8d34832bf",
-      "files": [
-        "amazingfeature/LuaRTTI.MarkGen.lua",
-        "amazingfeature/content.json",
-        "amazingfeature/effects/lumi_heart_mask/lua/Process.lua",
-        "amazingfeature/effects/lumi_heart_mask/material/mask.material",
-        "amazingfeature/effects/lumi_heart_mask/material/picture.material",
-        "amazingfeature/effects/lumi_heart_mask/mesh/SP_Quad.mesh",
-        "amazingfeature/effects/lumi_heart_mask/rt/midRT.rt",
-        "amazingfeature/effects/lumi_heart_mask/xshader/mask.frag",
-        "amazingfeature/effects/lumi_heart_mask/xshader/mask.vert",
-        "amazingfeature/effects/lumi_heart_mask/xshader/mask.xshader",
-        "amazingfeature/effects/lumi_heart_mask/xshader/picture.frag",
-        "amazingfeature/effects/lumi_heart_mask/xshader/picture.vert",
-        "amazingfeature/effects/lumi_heart_mask/xshader/picture.xshader",
-        "amazingfeature/image/mask.png",
-        "amazingfeature/image/mask.png.meta",
-        "amazingfeature/js-meta.json",
-        "amazingfeature/lua-meta.json",
-        "amazingfeature/lua/LumiFamily/LumiManager.lua",
-        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua",
-        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua",
-        "amazingfeature/main.scene",
-        "amazingfeature/prefabs/heartMaskProcess.prefab",
-        "amazingfeature/rt/outputTex.rt",
-        "amazingfeature/sticker.config",
-        "config.json",
-        "material.svg"
-      ],
-      "tree_sha256": "f323eb0b402a43776493f4d6899bce1fc82ccacdb5d1a8feb5b91d8f644738c2",
+      "files": {
+        "amazingfeature/LuaRTTI.MarkGen.lua": {
+          "sha256": "92c21dcd89568286f774729df77109e6cb409920e9628f7ee1aff8fd804f72c3",
+          "size": 198
+        },
+        "amazingfeature/content.json": {
+          "sha256": "83d2a69b1c4cedd61baebf42706657ccaab2b997331d61dc41e7dea07225b7bc",
+          "size": 217
+        },
+        "amazingfeature/effects/lumi_heart_mask/lua/Process.lua": {
+          "sha256": "31d7444e28acb34580e99060fd60e85e63997b85aa36dab92491356204128a7f",
+          "size": 4040
+        },
+        "amazingfeature/effects/lumi_heart_mask/material/mask.material": {
+          "sha256": "5d41a7b2c6f0399c43233ee7c5367a6575724cdee762aa410dc99b77575b3acb",
+          "size": 852
+        },
+        "amazingfeature/effects/lumi_heart_mask/material/picture.material": {
+          "sha256": "df9343a3b76efd761a19e6281d64709aa575c6f17af8f8f9214c0d2903b877d0",
+          "size": 783
+        },
+        "amazingfeature/effects/lumi_heart_mask/mesh/SP_Quad.mesh": {
+          "sha256": "454d21a05fd60a5eb9f27a46b90212be995eb87554439423de9ab1ecc75a5575",
+          "size": 1043
+        },
+        "amazingfeature/effects/lumi_heart_mask/rt/midRT.rt": {
+          "sha256": "5363824b940ed69426b34ef163871854557e5b4f920d9bf4adf4ecaec3910d80",
+          "size": 586
+        },
+        "amazingfeature/effects/lumi_heart_mask/xshader/mask.frag": {
+          "sha256": "409a372219ecd147a2da1177704dc67dd7f7806451c102e492c6772ed2021344",
+          "size": 417
+        },
+        "amazingfeature/effects/lumi_heart_mask/xshader/mask.vert": {
+          "sha256": "e55f9f7b5e2ce595f794ea38060d645f39d309655424f5feeec1670418428971",
+          "size": 606
+        },
+        "amazingfeature/effects/lumi_heart_mask/xshader/mask.xshader": {
+          "sha256": "29fc716558b5d67d8399df7781fc4180ded8b3990e7fbd57eee3ef3e80a1e57d",
+          "size": 1190
+        },
+        "amazingfeature/effects/lumi_heart_mask/xshader/picture.frag": {
+          "sha256": "20c5e577c3effd25106853461af142cecf26788e7bab90fe9cd87a4490e165d5",
+          "size": 345
+        },
+        "amazingfeature/effects/lumi_heart_mask/xshader/picture.vert": {
+          "sha256": "b5d71a4dedfed1a911a946e4689f422b307cf1a64181d07b2afaa72702d6c975",
+          "size": 168
+        },
+        "amazingfeature/effects/lumi_heart_mask/xshader/picture.xshader": {
+          "sha256": "96fc21e23d49801c3471813e1f96c51dddb405235a798be00f64a94167469104",
+          "size": 1199
+        },
+        "amazingfeature/image/mask.png": {
+          "sha256": "967d84309d93a7f49cc0127875d36cfceb185250e276dc8124e7e9145d579c84",
+          "size": 313939
+        },
+        "amazingfeature/image/mask.png.meta": {
+          "sha256": "320d8043cf175e87ff020a9ce79381a539ae7eb938baab63a85843bfb198b639",
+          "size": 389
+        },
+        "amazingfeature/js-meta.json": {
+          "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "size": 2
+        },
+        "amazingfeature/lua/LumiFamily/LumiManager.lua": {
+          "sha256": "59651651476e6cb435452ede1ac4e9e2a7003ac7832692df77c7de2abc72eb75",
+          "size": 4898
+        },
+        "amazingfeature/lua/LumiFamily/LumiObjectExtension.lua": {
+          "sha256": "cd4295455c9c8ad7c5c1d31e8c128b8d581ceaad2227315e5c9b8c5f01882423",
+          "size": 14607
+        },
+        "amazingfeature/lua/LumiFamily/LumiParamsSetter.lua": {
+          "sha256": "f40b8f07255e9d1c62981ea943e1e5a1fe1ef54a587c5d92e8a3f0980949a2e3",
+          "size": 1204
+        },
+        "amazingfeature/lua-meta.json": {
+          "sha256": "a9fb4a848cecac539caba1fa56d5ba20a6f6338768a01a5ea7398392f949f0cc",
+          "size": 3123
+        },
+        "amazingfeature/main.scene": {
+          "sha256": "a9e8d5f9aa8020baa21560339ab391b54647a153b1d68e4d8b678f5b239059c8",
+          "size": 5235
+        },
+        "amazingfeature/prefabs/heartMaskProcess.prefab": {
+          "sha256": "6033594ea93fe9f1000b644cebeca03f1bcba1ec06115692fd49f40e181917cd",
+          "size": 4051
+        },
+        "amazingfeature/rt/outputTex.rt": {
+          "sha256": "d57a9bbad70c0101c87b217839053a2b779a3982830aca4b6419d81f10d80042",
+          "size": 527
+        },
+        "amazingfeature/sticker.config": {
+          "sha256": "c2e398fb02d37ea98d2dffe986c47975e76b3fff8d7df2085986b10eb07b48d9",
+          "size": 300
+        },
+        "config.json": {
+          "sha256": "d57888cfae88170e3735d02578194f50f178031ec16992f28565b0a8981ca7a1",
+          "size": 243
+        },
+        "material.svg": {
+          "sha256": "2a8796b00e28b19f1a615d438e0f9e38078a8aabc08d4121a8491ced422dcd3a",
+          "size": 1805
+        }
+      },
+      "tree_sha256": "d72134d8c23f46d9d2ca3b2d7171908285487f2a1cb69cdb57593d427e422936",
       "material": {
         "type": "mask",
         "category": "video",
@@ -377,7 +785,7 @@
           "size": 401
         }
       },
-      "tree_sha256": null,
+      "tree_sha256": "109b61dbbfb2f09a69e01e56197d840f7199f6ad51201b0b62a1bc2341929555",
       "native_generated_cache_files": {
         "AmazingFeature/Library/ShaderData/1fe96443d2e2eea49ef2202f8a56fd26/shaderMetal/f443ba63a627600bf408d3ed98fe788e_4c5f3b563ad8e58fb10d5673d2364278_26.5.1.metallib": {
           "sha256": "94d35533d383a3bdb2cf41f1ce7a55da60d75de1301e051f3b1cdeb4b19b7965",
@@ -385,6 +793,14 @@
         },
         "AmazingFeature/Library/ShaderData/cac811388c1e389d11bae79f24e00020/shaderMetal/f443ba63a627600bf408d3ed98fe788e_9cdfd0c87a2a30eb8148378379a0d73a_26.5.1.metallib": {
           "sha256": "01892b9aae30672eabaf16b5d8f4fb17749c0309bf9008039545d87808a0b0c9",
+          "size": 35904
+        },
+        "AmazingFeature/Library/ShaderData/1fe96443d2e2eea49ef2202f8a56fd26/shaderMetal/f443ba63a627600bf408d3ed98fe788e_4c5f3b563ad8e58fb10d5673d2364278_26.6.2.metallib": {
+          "sha256": "6c1fbbdc5a9771e2a5010bc81e7f2c0ae1c000aea5ff57a2091a9c1c43959ccd",
+          "size": 30032
+        },
+        "AmazingFeature/Library/ShaderData/cac811388c1e389d11bae79f24e00020/shaderMetal/f443ba63a627600bf408d3ed98fe788e_9cdfd0c87a2a30eb8148378379a0d73a_26.6.2.metallib": {
+          "sha256": "a1b8079788f39809298b0b82d0f181c222bd06193eaf23ab87d7a87e15fc353a",
           "size": 35904
         }
       },
@@ -495,7 +911,7 @@
           "size": 104
         }
       },
-      "tree_sha256": null,
+      "tree_sha256": "dc006fa499721070ec74f98a2aa01ca7baa85bca5a7145b12acf6c4cdc0243da",
       "material": {
         "type": "transition",
         "name": "叠化",
