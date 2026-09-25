@@ -86,6 +86,18 @@ class PackagingTests(unittest.TestCase):
         with self.assertRaises(io.ApplyError):
             io._snapshot_file(link, 'fixture')
 
+    def test_search_only_directory_traversal_rejects_symlink_component(self):
+        real = self.folder / 'real'
+        real.mkdir()
+        link = self.folder / 'link'
+        link.symlink_to(real, target_is_directory=True)
+        descriptor = io._open_directory_secure(real, 'real directory')
+        os.close(descriptor)
+        with self.assertRaises(io.ApplyError):
+            io._open_directory_secure(link, 'symlinked directory')
+        if sys.platform == 'darwin' and hasattr(os, 'O_SEARCH'):
+            self.assertEqual(io._directory_open_flags() & os.O_SEARCH, os.O_SEARCH)
+
     def test_catalog_relocates_paths_without_changing_resource_identity(self):
         original = json.loads((ROOT / 'engine/native-resource-catalog.json').read_bytes())
         with patch.object(resources.Path, 'home', return_value=self.folder):

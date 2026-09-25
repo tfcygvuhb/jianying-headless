@@ -45,7 +45,7 @@ PINS = {
     'native_edit.py': '377c4ff886be5093cc08415e42ebe7d5669c04b30509ffd5a2695e5d1225b5eb',
     'native_export.py': '9dcc66d5b9fbb60e7bf5af77f47ec8ff48802542eca2f18b3f347aafb4359100',
     'native_export.cpp': '33cb7bdb206deba3804648b9b279e4d91073af91219eab124819657834f674c2',
-    'headless_runtime.py': '9925bd53c2cfc40844516aa3242a2cfb455843088d35bff53df5a9b123108443',
+    'headless_runtime.py': '5dc6da452ef7aab1e4ad156ab78074dbb7f6fe687aea4d7ac1ed7b8622649b20',
     'blueprint.json': '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9',
 }
 TOOL_PINS = {

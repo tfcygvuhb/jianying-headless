@@ -19,6 +19,8 @@ import stat
 
 import subprocess
 
+import sys
+
 import threading
 
 from dataclasses import dataclass
@@ -96,7 +98,10 @@ def _absolute_lexical(path: Path) -> Path:
     return Path(os.path.abspath(os.path.expanduser(os.fspath(path))))
 
 def _directory_open_flags() -> int:
-    flags = os.O_RDONLY
+    # macOS privacy-protected folders can stall on O_RDONLY directory opens.
+    # O_SEARCH requests traversal only; O_DIRECTORY/O_NOFOLLOW keep the same
+    # component-by-component directory and symlink checks below.
+    flags = os.O_SEARCH if sys.platform == "darwin" and hasattr(os, "O_SEARCH") else os.O_RDONLY
     for name in ("O_CLOEXEC", "O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK"):
         flags |= getattr(os, name, 0)
     return flags

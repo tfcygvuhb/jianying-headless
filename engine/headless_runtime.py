@@ -22,9 +22,9 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 BACKEND = PROJECT_ROOT / 'bridge'
 # Historical blueprint/codec provenance, not a statement of the current app version.
 MANIFEST_SHA = '2fea820b26d503940526c345ce8e9bd87c25f0c1c8b1c4a02aa8edba317e33dd'
-IO_MANIFEST_SHA = '052c8e8ac134fce15d45ecea39d2b0f9b8ce8a6165afc951f059f996a06d777c'
+IO_MANIFEST_SHA = 'e3ec1a56031eeef6a1ce6aa1da43c186daac320048a48f925bc9f8792cbb945b'
 PINS = {
-    'runtime_io.py': '64e87cfbcddaefcc4dd6c74c20d87339f2fcfe267263b712be6ae9d165150e10',
+    'runtime_io.py': '8baec63bfa6d4838abf2a5ba98e2a9025c278dc3b6d18e8ab4b3a55c3f116348',
 }
 CODEC_PINS = {
     'jy14_codec_hardened_11_4': 'b6533eb5eb1eea58dfa74fb1d16d3bb580970fe881f587605d358af1745f971d',
