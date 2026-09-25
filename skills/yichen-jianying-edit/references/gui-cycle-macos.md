@@ -7,7 +7,9 @@
 隔离工程各通过三轮，保存门另对两者各通过一轮；旧版缺身份回读的
 `verified` 报告不能单独作为凭据。此入口不使 2× 导出或高级效果开放。
 
-在已通过 `publish` 登记、且位于核心项目 `work/` 的隔离构建上运行。开始前须让剪映主程序正常退出；工具发现仍有剪映主进程会直接拒绝，避免碰到用户正在编辑的工程。
+在已通过新建草稿 `publish` 登记、且位于核心项目 `work/` 的 `jy14-headless-build/v1`
+隔离构建上运行；当前不接受 `jy14-edit-build/v1` 独立编辑副本。开始前须让剪映
+主程序正常退出；工具发现仍有剪映主进程会直接拒绝，避免碰到用户正在编辑的工程。
 
 ```bash
 export JIANYING_HEADLESS_ROOT=/absolute/path/to/jianying-headless
