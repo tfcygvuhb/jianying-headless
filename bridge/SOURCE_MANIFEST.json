@@ -2,6 +2,7 @@
   "schema": "jianying-headless-bridge-source/v1",
   "source_files": {
     "jy14_codec.cpp": "982f2fbf0f394e0992f8e38305d17354e534c3b64489cd571c6a525f16489a2c",
+    "jy14_codec_build481.cpp": "a41c4d1c08cf084f6e727b78b643c4f4b12172e20d2fcdffd56a22ef5e51a42b",
     "EncryptUtil.h": "8a5c4c6aabbd52c27ea9057bc230afb383a8784f1478a6f7894c478b12c50f62",
     "runtime_io.py": "8baec63bfa6d4838abf2a5ba98e2a9025c278dc3b6d18e8ab4b3a55c3f116348"
   },
@@ -21,7 +22,7 @@
     },
     "jy14-headless-macos-11.4.0-build481": {
       "name": "jy14_codec_hardened_11_4_0_build481",
-      "sha256": "f6f49c718c740dae77fe1525b2762fc1801951ec6bf5eb223156842529123947"
+      "sha256": "a473977dabb7652b7f111cd5d279c697ae71afc94c64a137d85fc8af8d06203f"
     }
   },
   "official_library_distributed": false,

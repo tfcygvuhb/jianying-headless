@@ -74,7 +74,7 @@ class RuntimeProfiles(unittest.TestCase):
         self.assertEqual(
             profiles.codec_for_profile(profiles.PROFILE_1140_BUILD481),
             ('jy14_codec_hardened_11_4_0_build481',
-             'f6f49c718c740dae77fe1525b2762fc1801951ec6bf5eb223156842529123947'))
+             'a473977dabb7652b7f111cd5d279c697ae71afc94c64a137d85fc8af8d06203f'))
 
     def test_mismatched_hash_build_bundle_and_unknown_version_rejected(self):
         for version in ('11.5.0','11.4.2'):

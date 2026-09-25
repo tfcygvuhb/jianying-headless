@@ -16,6 +16,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'engine'))
 from runtime_profiles import resolve_identity
+from runtime_profiles import PROFILE_1140_BUILD481
 from build_toolchain import select_toolchain, compile_command
 BRIDGE = ROOT / 'bridge'
 APP = Path('/Applications/VideoFusion-macOS.app')
@@ -114,7 +115,8 @@ def main(argv=None):
     env.update(TMPDIR=str(compiler_temp) + '/', CLANG_MODULE_CACHE_PATH=str(compiler_temp / 'modules'))
     built = job / destination.name
     frameworks = APP / 'Contents/Frameworks'
-    command = compile_command(BRIDGE / 'jy14_codec.cpp', frameworks, built, toolchain)
+    source = BRIDGE / ('jy14_codec_build481.cpp' if profile_id == PROFILE_1140_BUILD481 else 'jy14_codec.cpp')
+    command = compile_command(source, frameworks, built, toolchain)
     compiler = run(['/usr/bin/xcrun', 'clang++', '--version'], env=env).stdout
     result = run(command, env=env)
     actual = digest(built)

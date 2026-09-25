@@ -104,7 +104,7 @@ RUNTIME_IDENTITIES = {
         'bundle_id': BUNDLE_ID, 'team_identifier': TEAM_IDENTIFIER,
         'library_sha256': 'aea79715de6097394c2f38153e11565f02a823678801cd1eafe90bcccb20c086',
         'codec_name': 'jy14_codec_hardened_11_4_0_build481',
-        'codec_sha256': 'f6f49c718c740dae77fe1525b2762fc1801951ec6bf5eb223156842529123947',
+        'codec_sha256': 'a473977dabb7652b7f111cd5d279c697ae71afc94c64a137d85fc8af8d06203f',
         'capabilities': dict(_BUILD481_CAPABILITIES),
         'resource_evidence': {name: dict(layers)
                               for name, layers in _BUILD481_RESOURCE_EVIDENCE.items()},

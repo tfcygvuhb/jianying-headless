@@ -133,7 +133,8 @@ WAV 样本计划音量设为 0.5 时，输出实测增益约 0.352，不能把�
 
 2026-09-26 当前 macOS 的安全目录遍历修复与正式 `verify`/1× 导出回归见
 [O_SEARCH 诊断与验收](BUILD481-IO-SEARCH-20260926.md)。2× 内容映射门禁不变；
-C++ codec 的加密写入父目录仍在独立评估。
+C++ codec 的 Build 481 专用目录访问修复、严格重建与新工程导出证据见
+[Build 481 codec 目录写入报告](BUILD481-CODEC-SEARCH-20260926.md)。
 
 - 独立 `work/` 夹具和验收报告；源草稿与所有输入媒体前后 SHA-256 一致。
 - 全部单元测试、源码清单、`doctor`、`build`、`verify-build` 通过。
