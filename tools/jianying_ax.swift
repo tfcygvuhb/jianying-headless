@@ -108,8 +108,13 @@ let command=CommandLine.arguments[1],bundleID=CommandLine.arguments[2]
 let expectedBundle="com.lemon.lvpro"
 guard bundleID==expectedBundle else {fputs("unexpected bundle id\n",stderr);exit(3)}
 if command=="session" {
-    let state=CGSessionCopyCurrentDictionary() as? [String:Any] ?? [:]
-    guard (state["CGSSessionScreenIsLocked"] as? NSNumber)?.boolValue == false else {
+    guard let state=CGSessionCopyCurrentDictionary() as? [String:Any],
+          (state["kCGSSessionOnConsoleKey"] as? NSNumber)?.boolValue == true,
+          (state["kCGSessionLoginDoneKey"] as? NSNumber)?.boolValue == true else {
+        fputs("no active logged-in console session\n",stderr);exit(21)
+    }
+    if let locked=state["CGSSessionScreenIsLocked"],
+       (locked as? NSNumber)?.boolValue != false {
         fputs("macOS screen is locked; unlock before Jianying GUI acceptance\n",stderr);exit(21)
     }
     print("session-unlocked");exit(0)

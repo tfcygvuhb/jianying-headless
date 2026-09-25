@@ -45,7 +45,8 @@ Build 481 若需使用系统 `STIXGeneral.otf` 的 Regular 字形，原始文件
   实际字体文件写入新建计划；文字片段可用 `font_path` 直接指定字体。
 - 修改已有草稿：读 [独立副本编辑](references/edit-existing-macos.md)，保留原项目。
 - 已登记的隔离草稿需 GUI 保存与冷重开验收时：读
-  [Build 481 GUI 生命周期](references/gui-cycle-macos.md)，使用 `gui-cycle` 入口。
+  [Build 481 GUI 生命周期](references/gui-cycle-macos.md)。`gui-cycle` 当前因编辑器身份
+  回读不足而失败关闭，不能用其旧报告放行新能力。
 - 明确要求成片：读 [原生导出](references/export-macos.md)，只导出已验证的冻结快照。
 - 口播语义剪辑：读 [语义与音频质检](references/editing-and-qc.md) 和
   [口播计划格式](references/plan-format.md)，由 `scripts/edit_plan.py` 统一编译时间映射。

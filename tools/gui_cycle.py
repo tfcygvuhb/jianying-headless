@@ -105,6 +105,10 @@ def quit_and_confirm(binary):
 
 
 def run(args):
+    # The home-card click needs an independent readback of the editor's draft
+    # name and absolute save path. Disk verify alone can pass for a different
+    # project, so suspend this acceptance route until that check is implemented.
+    require(False, 'gui-cycle is disabled until exact editor identity readback is verified')
     build = Path(args.build).resolve(strict=True)
     out = Path(args.out).resolve()
     require(WORK.resolve() in build.parents, 'build must be an isolated work/ build')
