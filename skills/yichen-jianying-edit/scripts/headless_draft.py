@@ -48,11 +48,19 @@ PINS = {
     'headless_runtime.py': '9925bd53c2cfc40844516aa3242a2cfb455843088d35bff53df5a9b123108443',
     'blueprint.json': '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9',
 }
+TOOL_PINS = {
+    'gui_cycle.py': '23091f1c261c77a56a573ea316ad1ac982d1952b67f26d091e7a26e6a557a73c',
+    'jianying_ax.swift': '18e501e3737dbed9be163d34d432160db2a031bc6d07cde88112ccbd6ed4e057',
+}
 
 for name, expected in PINS.items():
     path = BACKEND / name
     if not path.is_file() or path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
         raise SystemExit('Headless component changed or unavailable; reverify before updating the pin: ' + name)
+for name, expected in TOOL_PINS.items():
+    path = PROJECT_ROOT / 'tools' / name
+    if not path.is_file() or path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        raise SystemExit('GUI component changed or unavailable; reverify before updating the pin: ' + name)
 
 sys.path.insert(0, str(BACKEND))
 
@@ -66,13 +74,18 @@ def require_runtime_capability(capability):
                          (runtime.get('runtime_profile', '<unknown>'), capability))
 
 
-entrypoint = 'jy14_headless.py'
+entrypoint = BACKEND / 'jy14_headless.py'
 if len(sys.argv) > 1 and sys.argv[1] == 'edit':
     require_runtime_capability('existing_edit')
-    entrypoint = 'native_edit.py'
+    entrypoint = BACKEND / 'native_edit.py'
     del sys.argv[1]
 elif len(sys.argv) > 1 and sys.argv[1] == 'export':
     require_runtime_capability('native_export')
-    entrypoint = 'native_export.py'
+    entrypoint = BACKEND / 'native_export.py'
     del sys.argv[1]
-runpy.run_path(str(BACKEND / entrypoint), run_name='__main__')
+elif len(sys.argv) > 1 and sys.argv[1] == 'gui-cycle':
+    require_runtime_capability('publish')
+    require_runtime_capability('verify')
+    entrypoint = PROJECT_ROOT / 'tools/gui_cycle.py'
+    del sys.argv[1]
+runpy.run_path(str(entrypoint), run_name='__main__')

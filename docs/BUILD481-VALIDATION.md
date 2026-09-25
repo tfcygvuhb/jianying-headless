@@ -109,7 +109,15 @@ GIF 的三个时间点抽帧显示动画变化；MP3/WAV 用静音视频底片�
 此外，GIF 独立草稿和包含这六种素材的 12 秒、三轨组合草稿均完成剪映保存、
 正常退出、冷启动重开与正式 `verify`；组合工程保留四段视频、两条音轨，
 PNG/JPEG/HEVC 的实际预览可见，GIF 两时刻画面发生变化，四镜像相同且源哈希未变。
-组合工程没有额外原生导出，也没有主观听感结论；上述单素材导出与频谱证据仍各自独立。
+2026-09-25 又经已安装 Skill 正式 `export` 对该组合 build 单独导出：
+`work/build481-expanded-combined-media-export-20260925/result.json` 为
+`encoded-and-decoded`，12 秒、360/360 帧、1280×720、30 fps、H.264/AAC、
+`ftypisom`，`ffmpeg -xerror` 完整解码通过，源 build 未变；输出 SHA-256 为
+`5f2d54d69f177383ecff6584a7e2685b75b99be53f5f769f4f3ae7318cf1d3e4`。
+1.5/4.5 秒抽帧分别显示 PNG/JPEG，7.25/7.75 秒显示 GIF 红块位置变化，
+10.5 秒显示 HEVC 测试色条。成片 1 秒和 4 秒音频各自有 220 Hz 主峰、RMS
+约 0.088，7 秒无计划音轨时 RMS 为 0。组合成片仍没有主观听感结论；
+上述单素材导出与频谱证据仍各自独立。
 WAV 样本计划音量设为 0.5 时，输出实测增益约 0.352，不能把音量字段
 直接当作线性振幅比例。数据保存在 `work/media-coverage-build481-20260924/`
 的 `MEDIA-COVERAGE-20260924.md` 及 `gui-cold-reopen/gui-cold-reopen-acceptance.json`。

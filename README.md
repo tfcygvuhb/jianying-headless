@@ -147,7 +147,8 @@ Skill 另收录于 [yichen-skills](https://github.com/mcncarl/yichen-skills/tree
 - 高清黑白滤镜与橙色描边花字已退出支持范围；含这些效果的计划或旧快照会明确报错。
 - 工程结构检查、原生播放、视觉一致性、主观听感与素材许可是不同的验收项目。
 
-Build 481 的资源精确开放范围见[资源矩阵](docs/BUILD481-RESOURCE-MATRIX.md)与
+Build 481 的逐功能支持层级见[完整能力矩阵](docs/BUILD481-FULL-CAPABILITY-MATRIX.md)，
+资源精确开放范围见[资源矩阵](docs/BUILD481-RESOURCE-MATRIX.md)与
 [叠化/特效专项验收](docs/BUILD481-TRANSITION-EFFECT-20260924.md)；详细结果及已知问题见
 [验证状态](docs/VERIFICATION.md)。
 

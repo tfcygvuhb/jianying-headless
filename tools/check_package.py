@@ -16,7 +16,7 @@ LOCAL_CODEC_NAMES = {
     'bridge/jy14_codec_hardened_11_4',
     'bridge/jy14_codec_hardened_11_4_0_build481',
 }
-SUFFIXES = {'.py', '.cpp', '.h', '.json', '.md', '.yaml', '.txt'}
+SUFFIXES = {'.py', '.cpp', '.h', '.json', '.md', '.yaml', '.txt', '.swift'}
 SPECIAL = {'.gitignore', 'NOTICE', 'LICENSE'}
 # User-approved public IG case derivatives. Never turn this into a general
 # media extension allowance: exact bytes, size and path are release-reviewed.
@@ -105,6 +105,8 @@ def main():
     wrapper = ROOT / 'skills/yichen-jianying-edit/scripts/headless_draft.py'
     for name, expected in literal(wrapper, 'PINS').items():
         require(digest(ROOT / 'engine' / name) == expected, 'Skill pin differs: ' + name)
+    for name, expected in literal(wrapper, 'TOOL_PINS').items():
+        require(digest(ROOT / 'tools' / name) == expected, 'Skill tool pin differs: ' + name)
     runtime = ROOT / 'engine/headless_runtime.py'
     manifest_path = ROOT / 'bridge/SOURCE_MANIFEST.json'
     require(digest(manifest_path) == literal(runtime, 'IO_MANIFEST_SHA'), 'IO manifest pin differs')
