@@ -57,6 +57,13 @@ Skill 范围内的基础媒体类型、BGM/音效、画中画和变速并不代�
 轻微抖动材料绑定失败。后续逐项证据见下方“Build 481 叠化与轻微抖动正式验收”。
 当前 `native_resources=false`，未验资源能力的正式导出 gate 仍关闭。
 
+2026-09-25 又用 `work/native-mask-test-20260925/fixture/` 中独立构建的 12 秒、
+六蒙版单素材 fixture 跑完 `engine/test_native_masks.py`：16/16 通过，
+`verify-build` 为 `verified`，结果记录在
+`work/native-mask-test-20260925/test-work-fixed-1/result.json`。
+该 fixture 不随源码分发；专项测试修正了对 `prepare()` 的 catalog 模拟接口和
+异常消息大小写，保留了缺文件、篡改和符号链接失败关闭以及源缓存未变的断言。
+
 ## Build 481 速度原生 helper 试验
 
 在隔离 `native-export-helper` 上对同一 Build 481 速度构建完成三次导出。每次均收到
