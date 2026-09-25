@@ -22,7 +22,7 @@ import native_fonts as fonts
 import native_motion as motion
 import native_resources as resources
 import native_compound as compound
-from runtime_profiles import EXPORT_PROFILES, validate_export_profiles
+from runtime_profiles import EXPORT_PROFILES, require_capability, validate_export_profiles
 
 HERE = Path(__file__).resolve().parent
 SCHEMA = 'jy14-native-export/v1'
@@ -369,6 +369,7 @@ def verified_build(path):
     if record.get('schema') == 'jy14-headless-build/v1':
         record = j.verify_build(path)
     elif record.get('schema') == edit.BUILD_SCHEMA:
+        require_capability(j.nd.doctor()['runtime_profile'], 'existing_edit_publish')
         record = edit.verify_build(path)
     else:
         raise ValueError('Export requires a supported verified headless/edit build')

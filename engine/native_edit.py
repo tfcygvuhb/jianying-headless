@@ -723,6 +723,7 @@ def main():
     elif args.command == 'build':
         result = build(args.plan, args.out)
     elif args.command in ('publish', 'resume-publish'):
+        require_capability(runtime['runtime_profile'], 'existing_edit_publish')
         compound.require_publishable(j.read_json(Path(args.build) / 'expected-timeline.json'))
         result = j.publish(args.build, args.audit, resume=args.command == 'resume-publish',
                            verify_build_fn=verify_build, verify_live_fn=verify_live)

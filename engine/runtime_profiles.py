@@ -12,7 +12,7 @@ BUNDLE_ID = 'com.lemon.lvpro'
 TEAM_IDENTIFIER = 'X2JNK7LY8J'
 
 CAPABILITY_NAMES = (
-    'draft_create', 'publish', 'verify', 'existing_edit',
+    'draft_create', 'publish', 'verify', 'existing_edit', 'existing_edit_publish',
     'native_export', 'native_resources',
 )
 
@@ -38,11 +38,11 @@ PROFILES = {
 
 _FULL_DRAFT_CAPABILITIES = {
     'draft_create': True, 'publish': True, 'verify': True,
-    'existing_edit': True, 'native_export': True, 'native_resources': True,
+    'existing_edit': True, 'existing_edit_publish': True, 'native_export': True, 'native_resources': True,
 }
 _BUILD481_CAPABILITIES = {
     'draft_create': True, 'publish': True, 'verify': True,
-    'existing_edit': True, 'native_export': True, 'native_resources': False,
+    'existing_edit': True, 'existing_edit_publish': False, 'native_export': True, 'native_resources': False,
 }
 _LEGACY_DISABLED_CAPABILITIES = {name: False for name in CAPABILITY_NAMES}
 

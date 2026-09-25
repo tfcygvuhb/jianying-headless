@@ -8,7 +8,7 @@
 
 | 分类 | 结果 |
 | --- | --- |
-| 已验证 | 精确应用身份；profile 专用 codec；基础视频、文字、音频的离线构建；`publish`（首页登记、热注册和冷重开）；`existing_edit`（文字替换/音量编辑副本登记）；`verify-build`/`verify` 回读；三类基础素材各三次隔离原生导出及正式 skill 入口复核；三类各自独立的 GUI 保存与冷重开；1.5×/0.75× 恒定变速的历史抽样时间码与三次导出，以及 0.1×/0.5×/8× 的历史单项导出、组合 GUI 冷重开和正式入口复核；后续逐帧复核发现非 1× 缺陷或证据不足，当前仅 1× 开放；Monaco TTF、固定 SHA 的 Arial TTF、STIXGeneralItalic OTF 与显式生成的 STIXGeneral Regular 别名、原 Skill 线性关键帧通道的隔离导出、GUI 冷重开及正式 Skill 导出；六种几何蒙版逐项 GUI 身份/缓存核验、保存冷重开与正式 Skill 导出；叠化及轻微抖动各自精确子集的 GUI、固定资源和正式 Skill 导出验收 |
+| 已验证 | 精确应用身份；profile 专用 codec；基础视频、文字、音频的离线构建；`publish`（新建工程首页登记、热注册和冷重开）；编辑副本离线构建与 `verify-build`；新建工程 `verify-build`/`verify` 回读；三类基础素材各三次隔离原生导出及正式 skill 入口复核；三类各自独立的 GUI 保存与冷重开；1.5×/0.75× 恒定变速的历史抽样时间码与三次导出，以及 0.1×/0.5×/8× 的历史单项导出、组合 GUI 冷重开和正式入口复核；后续逐帧复核发现非 1× 缺陷或证据不足，当前仅 1× 开放；Monaco TTF、固定 SHA 的 Arial TTF、STIXGeneralItalic OTF 与显式生成的 STIXGeneral Regular 别名、原 Skill 线性关键帧通道的隔离导出、GUI 冷重开及正式 Skill 导出；六种几何蒙版逐项 GUI 身份/缓存核验、保存冷重开与正式 Skill 导出；叠化及轻微抖动各自精确子集的 GUI、固定资源和正式 Skill 导出验收 |
 | 部分验证 | STIXGeneral Regular 原始 OTF 隔离导出成功，但 GUI 保存把字体绑定改为应用系统字体，冷重开 `verify` 失败；其他静态字体没有逐项验收。2× 的隔离原生导出有 89/90 帧反例，其余未列倍率仅有离线构建或无证据。编辑副本冷重开 UI 有首轮记录；GUI 导出完成解码及视听检查，但它的 `major_brand=qt  `，不能作为标准 MP4 对照。LLDB 无法附加，但默认请求构造器经静态分析和独立 helper 动态验证 |
 | 未验证 | 曲线变速；贴纸、调整图层；复合片段；叠化和轻微抖动以外的特效；其余高级功能的逐项冷重开与导出 |
 | 明确阻断 | `native_resources` 总门禁关闭；Build 481 导出入口对未验收的自定义字体、其他转场、六种之外的蒙版、其他特效和曲线变速继续失败关闭；复合片段保存持久化存在失败记录 |
@@ -38,7 +38,7 @@
 
 ## 阶段 2：existing_edit
 
-状态：`enabled`，`existing_edit=true`（2026-09-23）。
+当前状态：仅离线操作 `existing_edit=true`，登记/正式导出 `existing_edit_publish=false`。以下是 2026-09-23 的历史实验记录，不代表当前入口开放。
 
 在 publish 链路上叠加验证：
 1. 对已 publish 草稿 `Codex-Build481-Publish-20260923`（3 轨：2 视频 + 1 文字 + 1 音频）
@@ -59,6 +59,8 @@
 默认片段 `speed=1` 和根 `fps` 字段被原生保存省略。旧副本不能以此证明当前主机
 完整 GUI 冷重开及正式导出；生产校验没有为通过此样本而放宽，仍需新的隔离副本
 逐字段与逐帧验收。
+
+当前 Build 481 的 `edit publish`、`edit resume-publish` 和正式 `export --build EDIT_BUILD` 均在写入首页或创建输出目录前拒绝。新建草稿的 `publish`/`export` 保持各自已验收的门禁。
 
 ## 阶段 3：native_export
 

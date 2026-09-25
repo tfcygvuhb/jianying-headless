@@ -32,8 +32,13 @@ class RuntimeProfiles(unittest.TestCase):
         self.assertEqual(profile['profile_id'], 'jy14-headless-macos-11.4.0-build481')
         self.assertEqual(profile['capabilities'], {
             'draft_create': True, 'publish': True, 'verify': True,
-            'existing_edit': True, 'native_export': True, 'native_resources': False,
+            'existing_edit': True, 'existing_edit_publish': False,
+            'native_export': True, 'native_resources': False,
         })
+        with self.assertRaisesRegex(ValueError, 'existing_edit_publish'):
+            profiles.require_capability(profiles.PROFILE_1140_BUILD481, 'existing_edit_publish')
+        for version in ('11.4.2', '11.5.0'):
+            profiles.require_capability(profiles.PROFILE_PREFIX + version, 'existing_edit_publish')
         self.assertIn(profiles.PROFILE_1140_BUILD481, profiles.EXPORT_PROFILES)
         evidence = profiles.resource_evidence_for(profiles.PROFILE_1140_BUILD481)
         self.assertEqual(set(evidence), set(profiles.RESOURCE_CAPABILITY_NAMES))
