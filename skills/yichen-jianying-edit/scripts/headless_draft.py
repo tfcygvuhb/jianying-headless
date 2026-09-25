@@ -49,8 +49,10 @@ PINS = {
     'blueprint.json': '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9',
 }
 TOOL_PINS = {
-    'gui_cycle.py': '1027529243bc3d48bf713e5fb62652c54e28bbaa34affe6708d810c7d6284558',
-    'jianying_ax.swift': '092db296d8e81ec352bd5652c45275fe99e4cbb5fab8a3a42a4754ef513ef114',
+    'gui_cycle.py': '2d13e65d26c1dd38b34cdb6397ef1f77b69e8ae882fd19b44965e404e9be2789',
+    'jianying_ax.swift': '07ef2e000886b95c074d0295a041b728e800b97700c4c5837b5c1da1323c7bb2',
+    'jianying_capture_identity.swift': 'd6c4af04ceea142cafb9d5fa75d94fd0fd2c0ef3d5c467a352a5131bad5a8b03',
+    'jianying_identity_verifier.py': 'f50856afd089450333702aab6f3e0efd7e28b150203ebc382aa35fc54af68d74',
 }
 
 for name, expected in PINS.items():

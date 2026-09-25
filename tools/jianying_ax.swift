@@ -81,16 +81,47 @@ func activateAndConfirm(_ app:NSRunningApplication) {
     }
     fputs("target app did not become AXFrontmost\n",stderr); exit(17)
 }
-func sendCommandS(_ app:NSRunningApplication) {
+func checkOpenDraftHandles(_ app:NSRunningApplication,_ expectedTarget:String) {
+    let root=(FileManager.default.homeDirectoryForCurrentUser.path as NSString)
+        .appendingPathComponent("Movies/JianyingPro/User Data/Projects/com.lveditor.draft")
+    let target=URL(fileURLWithPath:expectedTarget).standardizedFileURL.path
+    guard expectedTarget==target,target.hasPrefix(root+"/"),target != root else {
+        fputs("save target is not a canonical local draft path\n",stderr);exit(23)
+    }
+    let process=Process(),output=Pipe()
+    process.executableURL=URL(fileURLWithPath:"/usr/sbin/lsof")
+    process.arguments=["-nP","-Fn","-p",String(app.processIdentifier)]
+    process.standardOutput=output
+    process.standardError=FileHandle.nullDevice
+    do { try process.run() } catch { fputs("lsof could not start before save\n",stderr);exit(24) }
+    let data=output.fileHandleForReading.readDataToEndOfFile()
+    process.waitUntilExit()
+    guard process.terminationStatus==0,let raw=String(data:data,encoding:.utf8) else {
+        fputs("lsof failed before save\n",stderr);exit(24)
+    }
+    let paths=raw.split(separator:"\n").filter{$0.hasPrefix("n/")}.map{String($0.dropFirst())}
+    let drafts=paths.filter{$0.hasPrefix(root+"/")}
+    let locks=drafts.filter{$0.hasSuffix("/.locked")}
+    guard locks.count==1,locks[0]==target+"/.locked",
+          drafts.allSatisfy({$0.hasPrefix(target+"/")}),
+          drafts.contains(where:{$0.hasPrefix(target+"/Resources/")}) else {
+        fputs("active editor draft handles differ from target before save\n",stderr);exit(25)
+    }
+}
+func sendCommandS(_ app:NSRunningApplication,_ expectedTarget:String) {
     let root=AXUIElementCreateApplication(app.processIdentifier), rows=snapshot(root)
     _=select(rows,"AXStaticText","description","MainTimeLineRoot")
     if let window=rows.first(where:{$0.row.role=="AXWindow"}), !window.row.actions.contains(kAXRaiseAction as String) { fputs("window cannot be raised\n",stderr); exit(6) }
     if let window=rows.first(where:{$0.row.role=="AXWindow"}) { _=AXUIElementPerformAction(window.element,kAXRaiseAction as CFString) }
     activateAndConfirm(app)
+    checkOpenDraftHandles(app,expectedTarget)
+    activateAndConfirm(app)
     let down=CGEvent(keyboardEventSource:nil,virtualKey:UInt16(kVK_ANSI_S),keyDown:true)!,up=CGEvent(keyboardEventSource:nil,virtualKey:UInt16(kVK_ANSI_S),keyDown:false)!
-    down.flags=[.maskCommand];up.flags=[.maskCommand];down.post(tap:.cghidEventTap);up.post(tap:.cghidEventTap)
+    down.flags=[.maskCommand];up.flags=[.maskCommand]
+    down.postToPid(app.processIdentifier);up.postToPid(app.processIdentifier)
     guard waitFor(app,"description","MainTimeLineRoot","AXStaticText") != nil else { fputs("editor state lost after Command+S\n",stderr); exit(7) }
-    print("saved: Cmd+S; MainTimeLineRoot remained visible")
+    checkOpenDraftHandles(app,expectedTarget)
+    print("saved: PID-directed Cmd+S; target draft handles and MainTimeLineRoot remained visible")
 }
 func quitNormally(_ app:NSRunningApplication) {
     let root=AXUIElementCreateApplication(app.processIdentifier), rows=snapshot(root)
@@ -103,7 +134,7 @@ func quitNormally(_ app:NSRunningApplication) {
     guard gone else { fputs("main editor process stayed alive after normal Quit\n",stderr); exit(10) }
     print("quit: AXMenuItem identifier=onAppQuitTriggered:, pid=\(app.processIdentifier) terminated")
 }
-guard CommandLine.arguments.count>=3 else { fputs("usage: jianying_ax session|check|set|click|save|quit <bundle-id> [...]\n",stderr);exit(2) }
+guard CommandLine.arguments.count>=3 else { fputs("usage: jianying_ax session|check|set|click|click-card|save|quit <bundle-id> [...]\n",stderr);exit(2) }
 let command=CommandLine.arguments[1],bundleID=CommandLine.arguments[2]
 let expectedBundle="com.lemon.lvpro"
 guard bundleID==expectedBundle else {fputs("unexpected bundle id\n",stderr);exit(3)}
@@ -129,7 +160,38 @@ if command=="check" {
     exit(0)
 }
 let app=appForBundle(bundleID)
-if command=="save" { sendCommandS(app);exit(0) }
+if command=="save" {
+    guard CommandLine.arguments.count==4 else {fputs("save needs exact target path\n",stderr);exit(2)}
+    sendCommandS(app,CommandLine.arguments[3]);exit(0)
+}
+if command=="click-card" {
+    guard CommandLine.arguments.count==4 else { fputs("click-card needs exact draft name\n",stderr);exit(2) }
+    activateAndConfirm(app)
+    let root=AXUIElementCreateApplication(app.processIdentifier),rows=snapshot(root)
+    let card=select(rows,"AXStaticText","description","HomePageDraft")
+    let title=select(rows,"AXStaticText","description","HomePageDraftTitle:"+CommandLine.arguments[3])
+    guard !rows.contains(where:{$0.row.role=="AXStaticText" && $0.row.description=="MainTimeLineRoot"}) else {
+        fputs("editor was already open before card click\n",stderr);exit(19)
+    }
+    guard let cx=card.row.x,let cy=card.row.y,let cw=card.row.width,let ch=card.row.height,
+          let tx=title.row.x,let ty=title.row.y,let tw=title.row.width,let th=title.row.height,
+          cw>0,ch>0,tw>0,th>0,
+          tx>=cx,ty>=cy,tx+tw<=cx+cw,ty+th<=cy+ch else {
+        fputs("unique title is not contained in the unique draft card AX frame\n",stderr);exit(22)
+    }
+    let point=CGPoint(x:cx+cw/2,y:cy+ch/2)
+    for kind in [CGEventType.leftMouseDown,.leftMouseUp] {
+        guard let event=CGEvent(mouseEventSource:nil,mouseType:kind,mouseCursorPosition:point,mouseButton:.left) else {
+            fputs("card click event creation failed\n",stderr);exit(15)
+        }
+        event.post(tap:.cghidEventTap)
+    }
+    guard waitFor(app,"description","MainTimeLineRoot","AXStaticText") != nil else {
+        fputs("editor state did not appear after exact associated card click\n",stderr);exit(16)
+    }
+    print("click-card/readback: exact title inside unique card; MainTimeLineRoot appeared")
+    exit(0)
+}
 guard CommandLine.arguments.count >= 6 else {fputs("set|click args: role field exact-value [new-value | expected-role expected-field expected-value]\n",stderr);exit(2)}
 guard ["set","click"].contains(command) else {fputs("unknown command\n",stderr);exit(2)}
 if command=="click" {

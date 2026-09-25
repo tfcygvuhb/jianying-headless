@@ -22,6 +22,8 @@ APP = Path('/Applications/VideoFusion-macOS.app')
 MAIN = str(APP / 'Contents/MacOS/VideoFusion-macOS')
 BUNDLE = 'com.lemon.lvpro'
 AX_SOURCE = Path(__file__).with_name('jianying_ax.swift')
+IDENTITY_SOURCE = Path(__file__).with_name('jianying_capture_identity.swift')
+IDENTITY_VERIFIER = Path(__file__).with_name('jianying_identity_verifier.py')
 
 
 def require(condition, message):
@@ -85,11 +87,14 @@ def verify(build):
 
 def open_target(binary, name):
     wait_ax(binary, 'AXWindow', 'title', '剪映专业版')
+    pids = main_pid()
+    require(len(pids) == 1, 'Jianying main PID is not unique on the home page')
+    command(['osascript', '-e',
+             'tell application "System Events" to set frontmost of first application process whose unix id is %d to true'
+             % pids[0]])
     command([str(binary), 'set', BUNDLE, 'AXTextField', 'description', '', name])
     wait_ax(binary, 'AXStaticText', 'description', 'HomePageDraftTitle:' + name)
-    wait_ax(binary, 'AXStaticText', 'description', 'HomePageDraft')
-    command([str(binary), 'click', BUNDLE, 'AXStaticText', 'description', 'HomePageDraft',
-             'AXStaticText', 'description', 'MainTimeLineRoot'])
+    command([str(binary), 'click-card', BUNDLE, name])
 
 
 def launch_and_open(binary, name):
@@ -104,11 +109,47 @@ def quit_and_confirm(binary):
     require(not main_pid(), 'Jianying main process remained after normal Quit')
 
 
+def draft_lsof(pid, path):
+    done = subprocess.run(['lsof', '-nP', '-Fn', '-p', str(pid)],
+                          capture_output=True, text=True, timeout=20)
+    draft_root = str(Path.home() / 'Movies/JianyingPro/User Data/Projects/com.lveditor.draft') + '/'
+    records = [line for line in done.stdout.splitlines()
+               if line == 'p' + str(pid) or line.startswith('n' + draft_root)]
+    path.write_text('pid=%d\nlsof_exit=%d\n%s\n' %
+                    (pid, done.returncode, '\n'.join(records)))
+    require(done.returncode == 0, 'lsof could not inspect the active editor PID')
+
+
+def editor_identity(ax_binary, capture_binary, name, target, directory):
+    """Bind visible editor name and open draft files to one current PID."""
+    wait_ax(ax_binary, 'AXStaticText', 'description', 'MainTimeLineRoot')
+    pids = main_pid()
+    require(len(pids) == 1, 'editor main PID is not unique')
+    pid = pids[0]
+    directory.mkdir(parents=True, exist_ok=False)
+    before_path = directory / 'lsof-before.txt'
+    after_path = directory / 'lsof-after.txt'
+    draft_lsof(pid, before_path)
+    capture_dir = directory / 'capture'
+    command([str(capture_binary), '--out-dir', str(capture_dir)], timeout=60)
+    require(main_pid() == [pid], 'editor PID changed during identity capture')
+    draft_lsof(pid, after_path)
+    sys.path.insert(0, str(IDENTITY_VERIFIER.parent))
+    from jianying_identity_verifier import evaluate
+    screenshot = capture_dir / 'editor-window.png'
+    envelope = capture_dir / 'identity-evidence.json'
+    results = [evaluate(name, str(target), pid, path.read_text(), screenshot, envelope)
+               for path in (before_path, after_path)]
+    (directory / 'identity-result.json').write_text(
+        json.dumps(results, ensure_ascii=False, indent=2) + '\n')
+    require(all(result['status'] == 'verified' for result in results),
+            'active editor identity did not match the requested draft')
+    require(main_pid() == [pid], 'editor PID changed after identity verification')
+    return {'pid': pid, 'capture': str(capture_dir), 'lsof_before': str(before_path),
+            'lsof_after': str(after_path), 'checks': results}
+
+
 def run(args):
-    # The home-card click needs an independent readback of the editor's draft
-    # name and absolute save path. Disk verify alone can pass for a different
-    # project, so suspend this acceptance route until that check is implemented.
-    require(False, 'gui-cycle is disabled until exact editor identity readback is verified')
     build = Path(args.build).resolve(strict=True)
     out = Path(args.out).resolve()
     require(WORK.resolve() in build.parents, 'build must be an isolated work/ build')
@@ -140,9 +181,13 @@ def run(args):
     out.mkdir(mode=0o700)
     binary = out / 'jianying_ax'
     command(['swiftc', str(AX_SOURCE), '-o', str(binary)], timeout=120)
+    capture_binary = out / 'jianying_capture_identity'
+    command(['swiftc', str(IDENTITY_SOURCE), '-o', str(capture_binary)], timeout=120)
     summary = {'schema': 'build481-gui-cycle/v1', 'status': 'running', 'name': name,
                'build': str(build), 'target': str(target), 'runtime': identity,
                'ax_source_sha256': digest(AX_SOURCE), 'source_sha256_before': source_before,
+               'identity_source_sha256': digest(IDENTITY_SOURCE),
+               'identity_verifier_sha256': digest(IDENTITY_VERIFIER),
                'rounds': []}
     report_path = out / 'result.json'
     try:
@@ -153,11 +198,17 @@ def run(args):
             launch_and_open(binary, name)
             first = verify(build)
             require(first['name'] == name, 'opened draft name does not match the requested build')
-            command([str(binary), 'save', BUNDLE])
+            opened_identity = editor_identity(binary, capture_binary, name, target,
+                                              out / ('round-%d-open' % number))
+            command([str(binary), 'save', BUNDLE, str(target)])
+            saved_identity = editor_identity(binary, capture_binary, name, target,
+                                             out / ('round-%d-saved' % number))
             saved = verify(build)
             require(saved['name'] == name, 'saved draft name changed')
             quit_and_confirm(binary)
             launch_and_open(binary, name)
+            cold_identity = editor_identity(binary, capture_binary, name, target,
+                                            out / ('round-%d-cold' % number))
             cold = verify(build)
             require(cold['name'] == name and cold['duration_us'] == first['duration_us'] and
                     cold['tracks'] == first['tracks'], 'cold reopen changed the planned timeline')
@@ -167,7 +218,10 @@ def run(args):
             after = file_hashes(target)
             summary['rounds'].append({'round': number, 'preflight': preflight,
                                       'before': first, 'saved': saved,
-                                      'cold_reopen': cold, 'source_sha256_after': source_after,
+                                      'cold_reopen': cold, 'editor_identity': {
+                                          'opened': opened_identity, 'saved': saved_identity,
+                                          'cold_reopen': cold_identity},
+                                      'source_sha256_after': source_after,
                                       'draft_manifest_sha256_before': manifest_sha256(before),
                                       'draft_manifest_sha256_after': manifest_sha256(after),
                                       'draft_files_before': len(before), 'draft_files_after': len(after),
