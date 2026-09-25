@@ -307,9 +307,13 @@ class ExportGuards(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'native resource'):
             e.require_build481_export_scope(profile, {'native_resources': [{'key': 'mask/custom'}]}, value)
         value = deepcopy(base)
-        for speed in (0.1, 0.5, 0.75, 1, 1.5, 8):
+        for speed in (1,):
             value['materials']['speeds'][0]['speed'] = speed
             e.require_build481_export_scope(profile, {}, value)
+        for speed in (0.1, 0.5, 0.75, 1.5, 8):
+            value['materials']['speeds'][0]['speed'] = speed
+            with self.assertRaisesRegex(ValueError, 'unreviewed constant speeds'):
+                e.require_build481_export_scope(profile, {}, value)
         value['materials']['speeds'][0]['speed'] = 2
         with self.assertRaisesRegex(ValueError, 'unreviewed constant speeds'):
             e.require_build481_export_scope(profile, {}, value)

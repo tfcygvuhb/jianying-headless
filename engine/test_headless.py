@@ -104,6 +104,24 @@ class HeadlessTests(unittest.TestCase):
             j.publish(dest, WORK / 'must-not-create')
         self.assertFalse((WORK / 'must-not-create').exists())
 
+    def test_build481_unqualified_speed_refused_before_home_write(self):
+        timeline = {'materials': {'speeds': [{'speed': 8}]},
+                    'tracks': [{'segments': [{'speed': 8}]}]}
+        audit = WORK / 'unqualified-speed-must-not-create'
+        fake_helper = SimpleNamespace(_decrypt_metadata_in_memory=lambda _: timeline)
+        with patch.object(j.nd, 'helper', return_value=fake_helper):
+            with self.assertRaisesRegex(ValueError, 'publish rejects unqualified speed'):
+                j.publish(FIXTURE / 'build', audit,
+                          verify_build_fn=lambda _: {
+                              'runtime_profile': 'jy14-headless-macos-11.4.0-build481'})
+        self.assertFalse(audit.exists())
+        timeline['materials']['speeds'] = []
+        timeline['tracks'][0]['segments'][0]['speed'] = 0.5
+        with self.assertRaisesRegex(ValueError, 'publish rejects unqualified speed'):
+            j.require_build481_publish_speed_scope(timeline)
+        timeline['tracks'][0]['segments'][0]['speed'] = 1
+        j.require_build481_publish_speed_scope(timeline)
+
     def test_symlink_in_build_refused(self):
         dest = WORK / 'symlink-tree'
         dest.mkdir()

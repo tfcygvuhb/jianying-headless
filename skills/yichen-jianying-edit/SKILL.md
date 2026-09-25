@@ -12,10 +12,10 @@ description: 在装有匹配版本剪映的 Apple Silicon Mac 上，无界面生
 基础本地视频、文字和本地音频原生 MP4 导出也已通过隔离验收。未逐项验收的原生资源和高级效果
 仍保持禁用。`doctor` 会返回
 `resource_evidence` 三层证据矩阵；该矩阵只报告已验范围，不能代替 capability 门禁。
-Build 481 还通过了 0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、Monaco TTF、固定 SHA
+Build 481 的正式导出只放行 1×；另通过了 Monaco TTF、固定 SHA
 `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、固定叠化 `transition/dissolve` 与轻微抖动 `effect/light-shake` 的单项验收。叠化正式 Skill 导出为 168 帧，轻微抖动为 90 帧；均为标准 MP4 且完整解码。资源 key、文件清单和 SHA 必须匹配，各自证据见核心项目 `docs/BUILD481-RESOURCE-MATRIX.md`。`native_resources` 总开关仍关闭，不能据此使用其他资源。原始 STIXGeneral Regular OTF 的 GUI 保存未保留字体绑定；显式生成的固定 SHA 别名通过验收，其他字体、自定义蒙版及其他未验资源仍关闭。原 Skill 不支持曲线变速。
 高清黑白滤镜与橙色描边花字已移除，不再列为待验功能；旧计划或快照含这两项时明确拒绝，不静默去掉效果。
-2× 存在导出 89/90 帧反例，其他未列倍率也未逐项验收；Build 481 不开放连续 0.1–8 倍范围。
+逐帧复核发现 2× 与官方 GUI 源画面映射不一致，8× 与计划的逐帧映射不符；0.1×、0.5× 末帧越过源区间右边界，其他非 1× 倍率证据不足。Build 481 的正式登记和导出均拒绝非 1× 倍率。
 
 ## 先确认依赖和本次范围
 

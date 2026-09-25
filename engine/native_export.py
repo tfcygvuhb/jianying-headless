@@ -72,7 +72,10 @@ def require_build481_export_scope(profile_id, record, timeline):
     font_assets = fonts.recorded_assets(record)
     j.require(all(asset['sha256'] in BUILD481_FONT_SHA256 for asset in (font_assets or [])),
               'Build 481 custom font SHA-256 is not verified')
-    reviewed_speeds = (0.1, 0.5, 0.75, 1.0, 1.5, 8.0)
+    # Full-frame source-label review found an incorrect 8x mapping and source
+    # boundary concerns at 0.1x/0.5x. Other rates await the same review.
+    # Keep only the baseline 1x path until exact rates are requalified.
+    reviewed_speeds = (1.0,)
     def reviewed_speed(value):
         return type(value) in (int, float) and math.isfinite(value) and value in reviewed_speeds
 
@@ -596,7 +599,7 @@ def run(build, out, bitrate=4_000_000, timeout=600):
     require_build481_export_scope(record.get('runtime_profile'), record, timeline)
     capabilities = supported_features(timeline)
     if record.get('runtime_profile') == 'jy14-headless-macos-11.4.0-build481':
-        capabilities.update(content_scope='Build 481 local video, text, audio, pinned Monaco/Arial TTF, STIXGeneral Italic OTF and reviewed Regular alias OTF fonts, linear keyframes, 0.1x/0.5x/0.75x/1x/1.5x/8x constant speed, six geometric masks, pinned dissolve and light-shake',
+        capabilities.update(content_scope='Build 481 local video, text, audio, pinned Monaco/Arial TTF, STIXGeneral Italic OTF and reviewed Regular alias OTF fonts, linear keyframes, baseline 1x speed only pending full-frame speed review, six geometric masks, pinned dissolve and light-shake',
                             mask_export='six pinned Build 481 geometric masks')
         for warning in capabilities['warnings']:
             if warning['code'] == 'native-dissolve-audio-overlap':

@@ -8,11 +8,11 @@
 **本机适配档案：11.4.0 Build 481。** 该精确官方签名构建已完成桥接重建、
 离线草稿构建与结构验证，并已通过首页登记和已有工程独立副本编辑验收。
 本地视频、文字、本地音频的基础原生 MP4 导出已通过三类各三次隔离验收，仓库和已安装
-Skill 出口也各完成三类导出复验。0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、Monaco TTF、固定 SHA 的
+Skill 出口也各完成三类导出复验。正式登记和导出的速度当前仅放行 1×；Monaco TTF、固定 SHA 的
 Arial TTF 与 STIXGeneralItalic OTF、已声明的线性关键帧通道、六种几何蒙版、叠化转场及轻微抖动通过逐项验收；
 Build 481 的原始 STIXGeneral Regular OTF GUI 保存会丢失草稿字体绑定；针对该精确文件，
 已验的[显式本地别名工具](tools/make_stix_regular_alias.py)可生成保留绑定的副本。其他字体仍保持禁用。曲线变速和未验
-资源等未验收项目也继续关闭；2× 有缺末帧反例，其他未列恒速不自动放行，见[恒速补验](docs/BUILD481-SPEED-20260925.md)。叠化与轻微抖动只按固定资源身份开放，`native_resources`
+资源等未验收项目也继续关闭；逐帧复核后所有非 1× 倍率均失败关闭，见[恒速补验](docs/BUILD481-SPEED-20260925.md)。叠化与轻微抖动只按固定资源身份开放，`native_resources`
 总门禁仍为 false。
 
 **首次使用请从 [从零生成第一个剪映草稿](docs/GETTING-STARTED.md) 开始。**
@@ -71,7 +71,7 @@ Build 481 的原始 STIXGeneral Regular OTF GUI 保存会丢失草稿字体绑�
 
 - Apple Silicon Mac，macOS 26.0+；已验证环境为 macOS 26.5.1。
 - 剪映专业版 11.5.0，或兼容配置对应的 11.4.2。
-- 另有精确 `11.4.0 Build 481` 档案，开放已验证的草稿创建、首页登记、检查、独立副本编辑、基础原生导出、0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、Monaco TTF、固定 SHA 的 Arial TTF 与 STIXGeneralItalic OTF、线性关键帧及六种几何蒙版；原始 STIXGeneral Regular OTF GUI 保存失败，只有显式生成的固定 SHA 别名通过验收。其他字体仍按单项门禁关闭，仅适用于源码记录的完整身份。
+- 另有精确 `11.4.0 Build 481` 档案，开放已验证的草稿创建、首页登记、检查、独立副本编辑、基础原生导出、仅 1× 正式速度导出、Monaco TTF、固定 SHA 的 Arial TTF 与 STIXGeneralItalic OTF、线性关键帧及六种几何蒙版；原始 STIXGeneral Regular OTF GUI 保存失败，只有显式生成的固定 SHA 别名通过验收。其他字体仍按单项门禁关闭，仅适用于源码记录的完整身份。
 - Python 3.9+、FFmpeg / ffprobe、Xcode Command Line Tools。
 - 已验证桥接工具链：Apple clang 21.0.0 / macOS SDK 26.5。
 
@@ -143,7 +143,7 @@ Skill 另收录于 [yichen-skills](https://github.com/mcncarl/yichen-skills/tree
 - 复合片段仅支持实验性的离线修改与冻结快照导出，尚不能交付为保存可靠的可编辑嵌套草稿。
 - 图片/GIF 样本曾出现间歇少一帧；严格帧数检查会拒绝缺帧输出，根因尚未解决。
 - 不支持任意剪映版本、任意效果组合、在线模板、资源下载、云端工程或账号权益获取。
-- `11.4.0 Build 481` 已开放离线新建、首页登记、检查、已有工程独立副本编辑、基础原生 MP4 导出、已验收的0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、Monaco TTF、固定 SHA 的 Arial TTF 与 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、叠化和轻微抖动；后两项仅按固定资源身份开放。原始 STIXGeneral Regular OTF GUI 保存失败，固定 SHA 的本地别名已单项通过；曲线变速及未逐项验收的资源/效果仍失败关闭。
+- `11.4.0 Build 481` 已开放离线新建、首页登记、检查、已有工程独立副本编辑、基础原生 MP4 导出、仅 1× 正式速度导出、Monaco TTF、固定 SHA 的 Arial TTF 与 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、叠化和轻微抖动；后两项仅按固定资源身份开放。原始 STIXGeneral Regular OTF GUI 保存失败，固定 SHA 的本地别名已单项通过；曲线变速及未逐项验收的资源/效果仍失败关闭。
 - 高清黑白滤镜与橙色描边花字已退出支持范围；含这些效果的计划或旧快照会明确报错。
 - 工程结构检查、原生播放、视觉一致性、主观听感与素材许可是不同的验收项目。
 

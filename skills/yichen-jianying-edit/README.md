@@ -26,7 +26,7 @@ Apple Silicon macOS、Python 3.9+、FFmpeg / ffprobe、Xcode 编译工具，以�
 原版剪映。11.5.0 为主版本，11.4.2 为兼容版本，两者支持草稿和原生导出；
 普通 11.4.0 仅保留历史草稿配置。精确的 11.4.0 Build 481 档案已通过离线新建草稿、
 首页登记、结构检查、已有工程独立副本编辑，以及本地视频、文字、本地音频的基础原生 MP4
-导出；0.1×、0.5×、0.75×、1×、1.5×、8× 六档恒速、Monaco TTF、固定 SHA
+导出；仅 1× 正式速度导出、Monaco TTF、固定 SHA
 `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、固定叠化 `transition/dissolve` 和轻微抖动 `effect/light-shake` 也已通过单项验收。叠化和轻微抖动正式原生导出分别为 168 和 90 帧 H.264/AAC，完整解码通过。仅匹配固定资源 key、文件清单及 SHA 时开放；`native_resources` 总门禁仍关闭。Build 481 的原始 STIXGeneral Regular OTF GUI 保存失败；显式生成的固定 SHA 别名已通过验收，其他字体仍关闭。
 
 Build 481 的隔离工程可用 `gui-cycle` 入口执行 Accessibility 定位、保存、正常退出及冷重开结构核验；只接受已登记的 `work/` 草稿，具体用法见 [GUI 生命周期](references/gui-cycle-macos.md)。该入口不编辑任意时间线或自动开放新资源。

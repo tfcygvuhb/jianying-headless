@@ -644,12 +644,30 @@ def copy_xattrs(source_attrs, destination, audit):
     return copied, changed
 
 
+def require_build481_publish_speed_scope(timeline):
+    """Reject unqualified speed before a Build 481 draft reaches the home index."""
+    require(isinstance(timeline, dict), 'Build 481 timeline is invalid')
+    for bucket in timeline.get('materials', {}).get('speeds', []):
+        speed = bucket.get('speed', 1) if isinstance(bucket, dict) else None
+        require(type(speed) in (int, float) and math.isfinite(speed) and speed == 1
+                and 'curve_speed' not in bucket,
+                'Build 481 publish rejects unqualified speed')
+    for track in timeline.get('tracks', []):
+        for segment in track.get('segments', []):
+            speed = segment.get('speed', 1)
+            require(type(speed) in (int, float) and math.isfinite(speed) and speed == 1,
+                    'Build 481 publish rejects unqualified speed')
+
+
 def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None):
     verify_build_fn = verify_build_fn or verify_build
     verify_live_fn = verify_live_fn or verify_live
     out = Path(out).resolve(strict=True)
     record = verify_build_fn(out)
     h = nd.helper()
+    if record.get('runtime_profile') == 'jy14-headless-macos-11.4.0-build481':
+        require_build481_publish_speed_scope(
+            h._decrypt_metadata_in_memory(out / 'draft/draft_info.json'))
     runtime = h._validate_runtime_environment()
     require_capability(runtime['runtime_profile'], 'publish')
     require(record.get('runtime_profile') == runtime['runtime_profile'],
