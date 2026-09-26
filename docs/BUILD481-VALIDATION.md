@@ -141,6 +141,18 @@ effect 轨 1 段、range 0.15、speed 0.33，缓存字节已验证、四镜像�
 
 该 GUI 成片的 `ftyp` 品牌为 `qt  `，不能当成正式 Skill 的 `isom` MP4 验收。导出后再次退出的草稿仍保留 parent/sidecar 失配，导出本身未修复结构。
 
+2026-09-27 又在 `work/` 的三个完整快照副本中，仅按该已知 90% 编辑同步
+父内嵌 child、旁文件 child、`combination_id` 和三个带 child UUID 的路径；
+写回精确 Build 481 密文并核对四镜像、解密回读及严格 sidecar 均通过。
+随后创建全新 draft/project/timeline/material/segment ID 的独立副本，
+把所有原 GUI 工程绝对路径重绑到副本自身资源；旧名称/路径扫描为零，
+资源文件、codec、graph 和 sidecar 预检通过。主 agent 使用现有原子首页
+登记事务的**隔离实验回调**，仅新增 `Codex-Build481-Compound-Repaired-20260926`
+一条首页记录，旧条目顺序及源素材哈希不变。首次尝试启动剪映时系统
+报告 Mac 已锁定，因此该修复副本尚无 GUI 打开、再次保存或冷重开证据。
+这次实验没有修改正式 Skill 的复合片段门禁；过程与恢复记录在
+`work/build481-compound-repair-20260926/REGISTRATION-AND-GUI.md`。
+
 ## 媒体格式补验（2026-09-24）
 
 PNG、JPEG、GIF、HEVC 视频以及 MP3、WAV 音轨分别通过隔离 `build`、
