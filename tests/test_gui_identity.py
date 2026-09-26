@@ -71,6 +71,53 @@ class EditorIdentityTests(unittest.TestCase):
         self.assertEqual(result['status'], 'rejected')
         self.assertIn('screenshot-hash-mismatch', {r['code'] for r in result['reasons']})
 
+    def wrapped_name(self):
+        self.items = [
+            {'text': '草稿名称：', 'confidence': 1.0, 'x': .70, 'y': .80,
+             'width': .07, 'height': .02},
+            {'text': 'Build481-', 'confidence': 1.0, 'x': .82, 'y': .80,
+             'width': .08, 'height': .02},
+            {'text': 'Identity-Sample', 'confidence': 1.0, 'x': .82, 'y': .775,
+             'width': .14, 'height': .02},
+            {'text': '保存位置：', 'confidence': 1.0, 'x': .70, 'y': .70,
+             'width': .07, 'height': .02},
+        ]
+        self.write_envelope()
+
+    def test_wrapped_name_is_exactly_bound_to_the_label(self):
+        self.wrapped_name()
+        self.assertEqual(self.check()['status'], 'verified')
+        self.assertEqual(self.check(lsof=self.lsof + 'n' + str(Path(DRAFT_ROOT) / 'other/.locked') + '\n')['status'],
+                         'rejected')
+
+    def test_wrapped_name_rejects_wrong_text_low_confidence_and_wrong_column(self):
+        self.wrapped_name()
+        for changes in ({'text': 'Identity-SamplE'}, {'confidence': .5}, {'x': .89},
+                        {'y': .71}, {'text': 'Identity- Sample'}):
+            self.items[2] = dict(self.items[2], **changes)
+            self.write_envelope()
+            self.assertEqual(self.check()['status'], 'rejected', changes)
+            self.wrapped_name()
+
+    def test_wrapped_name_cannot_skip_intervening_text_or_duplicate_label(self):
+        self.wrapped_name()
+        self.items.insert(2, {'text': 'other', 'confidence': 1.0, 'x': .82, 'y': .781,
+                              'width': .08, 'height': .02})
+        self.write_envelope()
+        self.assertEqual(self.check()['status'], 'rejected')
+        self.wrapped_name()
+        self.items.append(dict(self.items[0]))
+        self.write_envelope()
+        self.assertIn('draft-name-label-not-unique', {r['code'] for r in self.check()['reasons']})
+
+    def test_name_elsewhere_cannot_replace_the_labeled_value(self):
+        self.wrapped_name()
+        self.items[1]['text'] = 'wrong'
+        self.items.append({'text': self.name, 'confidence': 1.0, 'x': .45, 'y': .95,
+                           'width': .2, 'height': .02})
+        self.write_envelope()
+        self.assertEqual(self.check()['status'], 'rejected')
+
 
 if __name__ == '__main__':
     unittest.main()

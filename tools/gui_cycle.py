@@ -150,14 +150,24 @@ def open_target(binary, name):
              % pids[0]])
     command([str(binary), 'set', BUNDLE, 'AXTextField', 'description', '', name])
     wait_ax(binary, 'AXStaticText', 'description', 'HomePageDraftTitle:' + name)
-    command([str(binary), 'click-card', BUNDLE, name])
+    try:
+        command([str(binary), 'click-card', BUNDLE, name])
+        return 1
+    except RuntimeError as error:
+        require('editor state did not appear after exact associated card click' in str(error),
+                'exact associated card click failed: ' + str(error))
+        # A second click is allowed only while the same unique homepage title
+        # remains visible; the Swift command rechecks its current AX card frame.
+        wait_ax(binary, 'AXStaticText', 'description', 'HomePageDraftTitle:' + name, seconds=5)
+        command([str(binary), 'click-card', BUNDLE, name])
+        return 2
 
 
 def launch_and_open(binary, name):
     command([str(binary), 'session', BUNDLE])
     require(not main_pid(), 'Jianying main process is already running; preserve the current session')
     command(['open', '-b', BUNDLE])
-    open_target(binary, name)
+    return open_target(binary, name)
 
 
 def quit_and_confirm(binary):
@@ -266,7 +276,7 @@ def run(args):
             preflight = verify(build, record)
             require(preflight['name'] == name, 'live draft changed before GUI acceptance')
             before = file_hashes(target)
-            launch_and_open(binary, name)
+            opened_click_attempts = launch_and_open(binary, name)
             first = verify(build, record)
             require(first['name'] == name, 'opened draft name does not match the requested build')
             opened_identity = editor_identity(binary, capture_binary, name, target,
@@ -277,7 +287,7 @@ def run(args):
             saved = verify(build, record)
             require(saved['name'] == name, 'saved draft name changed')
             quit_and_confirm(binary)
-            launch_and_open(binary, name)
+            cold_click_attempts = launch_and_open(binary, name)
             cold_identity = editor_identity(binary, capture_binary, name, target,
                                             out / ('round-%d-cold' % number))
             cold = verify(build, record)
@@ -288,6 +298,8 @@ def run(args):
             require(source_after == source_before, 'source asset changed during GUI acceptance')
             after = file_hashes(target)
             summary['rounds'].append({'round': number, 'preflight': preflight,
+                                      'card_click_attempts': {'open': opened_click_attempts,
+                                                              'cold_reopen': cold_click_attempts},
                                       'before': first, 'saved': saved,
                                       'cold_reopen': cold, 'editor_identity': {
                                           'opened': opened_identity, 'saved': saved_identity,

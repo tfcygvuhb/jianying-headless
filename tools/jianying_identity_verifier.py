@@ -61,6 +61,83 @@ def normalize_label(text: str) -> str:
     return text.strip().removesuffix(":").removesuffix("：").strip()
 
 
+def ocr_box(item: dict[str, Any]) -> tuple[float, float, float, float] | None:
+    try:
+        box = tuple(float(item[key]) for key in ('x', 'y', 'width', 'height'))
+    except (KeyError, TypeError, ValueError):
+        return None
+    x, y, width, height = box
+    if not all(math.isfinite(value) for value in box) or not (0 <= x < 1 and 0 <= y < 1 and
+            0 < width <= 1 - x and 0 < height <= 1 - y):
+        return None
+    return box
+
+
+def ocr_center_y(item: dict[str, Any]) -> float:
+    box = ocr_box(item)
+    return box[1] + box[3] / 2 if box is not None else float('nan')
+
+
+def beside_label(label: dict[str, Any], value: dict[str, Any]) -> bool:
+    left, right = ocr_box(label), ocr_box(value)
+    if left is None or right is None:
+        return False
+    lx, ly, lw, lh = left
+    vx, vy, _, vh = right
+    return vx >= lx + lw - 0.01 and abs((ly + lh / 2) - (vy + vh / 2)) <= max(0.025, 1.5 * max(lh, vh))
+
+
+def name_sequences(items: list[dict[str, Any]], label: dict[str, Any], name: str) -> list[list[dict[str, Any]]]:
+    """Read only an exact OCR value beside 草稿名称, including bounded line wraps."""
+    save_labels = [item for item in items if isinstance(item.get('text'), str)
+                   and normalize_label(item['text']) == '保存位置' and ocr_box(item) is not None]
+    save_boundary = ocr_center_y(save_labels[0]) if len(save_labels) == 1 else None
+    sequences = []
+    for first in items:
+        part = first.get('text')
+        if not isinstance(part, str):
+            continue
+        part = part.strip()
+        if not part or not name.startswith(part) or not beside_label(label, first):
+            continue
+        sequence = [first]
+        assembled = part
+        while assembled != name and len(sequence) < 4 and save_boundary is not None:
+            previous = sequence[-1]
+            px, py, _, ph = ocr_box(previous)
+            previous_center = py + ph / 2
+            possible = []
+            for item in items:
+                if item in sequence or not isinstance(item.get('text'), str) or not item['text'].strip():
+                    continue
+                box = ocr_box(item)
+                if box is None:
+                    continue
+                x, y, _, height = box
+                center = y + height / 2
+                gap = py - (y + height)
+                if (abs(x - px) <= max(.004, .25 * max(ph, height)) and
+                        center < previous_center - .5 * min(ph, height) and
+                        center > save_boundary + .005 and
+                        -.003 <= gap <= 1.25 * max(ph, height)):
+                    possible.append((center, item))
+            if not possible:
+                break
+            nearest = max(center for center, _ in possible)
+            next_line = [item for center, item in possible if abs(center - nearest) <= .005]
+            if len(next_line) != 1:
+                break
+            next_item = next_line[0]
+            next_part = next_item['text'].strip()
+            if not name.startswith(assembled + next_part):
+                break
+            sequence.append(next_item)
+            assembled += next_part
+        if assembled == name:
+            sequences.append(sequence)
+    return sequences
+
+
 def load_evidence(screenshot: Path, ocr_path: Path) -> tuple[list[dict[str, Any]], list[dict[str, str]], str]:
     problems: list[dict[str, str]] = []
     screenshot_sha = hashlib.sha256(screenshot.read_bytes()).hexdigest()
@@ -148,18 +225,16 @@ def evaluate(name: str, target: str, pid: int, lsof_text: str,
 
     labels = [item for item in items
               if isinstance(item.get("text"), str) and normalize_label(item["text"]) == "草稿名称"]
-    exact_values = [item for item in items
-                    if isinstance(item.get("text"), str) and item["text"].strip() == name]
     if len(labels) != 1:
         reasons.append(reject("draft-name-label-not-unique", f"expected one 草稿名称 label, found {len(labels)}"))
-    if len(exact_values) != 1:
-        reasons.append(reject("exact-name-not-unique", f"expected one exact OCR match for {name}, found {len(exact_values)}"))
-    if len(labels) == 1 and len(exact_values) == 1:
-        label, value = labels[0], exact_values[0]
+    sequences = name_sequences(items, labels[0], name) if len(labels) == 1 else []
+    if len(sequences) != 1:
+        reasons.append(reject("exact-name-not-unique", f"expected one exact name beside 草稿名称, found {len(sequences)}"))
+    if len(labels) == 1 and len(sequences) == 1:
+        label, value = labels[0], sequences[0][0]
         try:
             label_conf = float(label["confidence"])
-            value_conf = float(value["confidence"])
-            lx, ly, lw, lh, vx, vy, vh = map(float, (label["x"], label["y"], label["width"], label["height"], value["x"], value["y"], value["height"]))
+            value_conf = min(float(item['confidence']) for item in sequences[0])
         except (KeyError, TypeError, ValueError):
             reasons.append(reject("ocr-geometry-invalid", "name label/value lacks numeric confidence or bounding box"))
         else:
@@ -167,15 +242,10 @@ def evaluate(name: str, target: str, pid: int, lsof_text: str,
                     not 0.0 <= label_conf <= 1.0 or not 0.0 <= value_conf <= 1.0 or
                     min(label_conf, value_conf) < min_confidence):
                 reasons.append(reject("name-confidence-low", f"label={label_conf:.3f}, value={value_conf:.3f}, threshold={min_confidence:.3f}"))
-            if (not all(math.isfinite(v) for v in (lx, ly, lw, lh, vx, vy, vh)) or
-                    not (0 <= lx <= 1 and 0 <= ly <= 1 and 0 < lw <= 1 and 0 < lh <= 1 and
-                         0 <= vx <= 1 and 0 <= vy <= 1 and 0 < vh <= 1)):
+            if ocr_box(label) is None or any(ocr_box(item) is None for item in sequences[0]):
                 reasons.append(reject("ocr-geometry-invalid", "OCR boxes must be finite normalized coordinates in [0,1]"))
-            else:
-                label_cy = ly + lh / 2.0
-                value_cy = vy + vh / 2.0
-                if vx < lx + lw - 0.01 or abs(label_cy - value_cy) > max(0.025, 1.5 * max(lh, vh)):
-                    reasons.append(reject("name-not-adjacent-to-label", "exact name OCR is not to the right of and aligned with 草稿名称"))
+            elif not beside_label(label, value):
+                reasons.append(reject("name-not-adjacent-to-label", "exact name OCR is not to the right of and aligned with 草稿名称"))
 
     if expected_target is not None:
         target_resources = expected_target.rstrip('/') + '/Resources/'

@@ -78,6 +78,38 @@ class GuiCycleSchemaTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'contains a symlink'):
             cycle.source_snapshot(record, self.target)
 
+    def test_home_card_click_retries_once_only_after_exact_title_remains(self):
+        clicked = []
+
+        def command(argv, timeout=30):
+            if argv[1] == 'click-card':
+                clicked.append(argv)
+                if len(clicked) == 1:
+                    raise RuntimeError('editor state did not appear after exact associated card click')
+            return ''
+
+        with patch.object(cycle, 'command', side_effect=command), \
+                patch.object(cycle, 'wait_ax') as wait, patch.object(cycle, 'main_pid', return_value=[123]):
+            self.assertEqual(cycle.open_target(self.root / 'ax', self.target.name), 2)
+        self.assertEqual(len(clicked), 2)
+        self.assertEqual(wait.call_count, 3)
+        self.assertEqual(wait.call_args.kwargs['seconds'], 5)
+
+    def test_home_card_click_does_not_retry_unrelated_failure(self):
+        clicked = []
+
+        def command(argv, timeout=30):
+            if argv[1] == 'click-card':
+                clicked.append(argv)
+                raise RuntimeError('unique title is not contained in the unique draft card AX frame')
+            return ''
+
+        with patch.object(cycle, 'command', side_effect=command), \
+                patch.object(cycle, 'wait_ax'), patch.object(cycle, 'main_pid', return_value=[123]):
+            with self.assertRaisesRegex(ValueError, 'exact associated card click failed'):
+                cycle.open_target(self.root / 'ax', self.target.name)
+        self.assertEqual(len(clicked), 1)
+
 
 if __name__ == '__main__':
     unittest.main()
