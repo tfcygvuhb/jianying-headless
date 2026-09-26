@@ -142,6 +142,16 @@ class CopyEditorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'changed after build'):
             e.verify_build(target)
 
+    def test_edit_runtime_pin_detects_identity_drift(self):
+        runtime = j.nd.validate_runtime()
+        record = {'runtime_profile': runtime['runtime_profile'], 'runtime': runtime}
+        self.assertTrue(e.verify_recorded_runtime(record))
+        changed = deepcopy(record)
+        changed['runtime']['codec_sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'runtime fingerprint changed'):
+            e.verify_recorded_runtime(changed)
+        self.assertFalse(e.verify_recorded_runtime({'runtime_profile': runtime['runtime_profile']}))
+
     def test_readback_detects_nonempty_field_loss(self):
         with self.assertRaisesRegex(ValueError, 'disappeared'):
             e.preserved({'plugin': {'important': .5}}, {'plugin': {}})

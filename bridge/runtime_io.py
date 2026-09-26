@@ -19,6 +19,8 @@ import stat
 
 import subprocess
 
+import sys
+
 import threading
 
 from dataclasses import dataclass
@@ -36,6 +38,7 @@ APP_BUNDLE = Path("/Applications/VideoFusion-macOS.app")
 WORK_DIR = Path(__file__).resolve().parent
 
 CODEC_PATH = WORK_DIR / "jy14_codec_hardened_11_4"
+CODEC_PROFILE = "legacy-default"
 
 MAIN_EXECUTABLE_RELATIVE = Path("Contents/MacOS/VideoFusion-macOS")
 
@@ -49,6 +52,31 @@ MAX_METADATA_PLAINTEXT_BYTES = 16 * 1024 * 1024
 
 class ApplyError(RuntimeError):
     """The requested live mutation could not be proven safe."""
+
+
+def configure_codec(path: Path, expected_sha256: str, profile_id: str) -> None:
+    """Bind this process to one exact profile-specific codec.
+
+    The path is deliberately restricted to the checked-out bridge directory;
+    callers cannot redirect metadata operations to an arbitrary executable.
+    The bytes are checked by the runtime doctor and checked again by every
+    encrypt/decrypt operation through ``_tool_pin``.
+    """
+    global CODEC_PATH, REQUIRED_CODEC_SHA256, CODEC_PROFILE
+    candidate = Path(path)
+    if not candidate.is_absolute() or candidate.parent != WORK_DIR:
+        raise ApplyError("codec must be a direct child of the checked-out bridge directory")
+    if not isinstance(expected_sha256, str) or len(expected_sha256) != 64:
+        raise ApplyError("codec profile has no exact SHA256 pin")
+    try:
+        int(expected_sha256, 16)
+    except ValueError as exc:
+        raise ApplyError("codec profile has an invalid SHA256 pin") from exc
+    if not isinstance(profile_id, str) or not profile_id:
+        raise ApplyError("codec profile identity is required")
+    CODEC_PATH = candidate
+    REQUIRED_CODEC_SHA256 = expected_sha256
+    CODEC_PROFILE = profile_id
 
 @dataclass(frozen=True)
 class FileSnapshot:
@@ -70,7 +98,10 @@ def _absolute_lexical(path: Path) -> Path:
     return Path(os.path.abspath(os.path.expanduser(os.fspath(path))))
 
 def _directory_open_flags() -> int:
-    flags = os.O_RDONLY
+    # macOS privacy-protected folders can stall on O_RDONLY directory opens.
+    # O_SEARCH requests traversal only; O_DIRECTORY/O_NOFOLLOW keep the same
+    # component-by-component directory and symlink checks below.
+    flags = os.O_SEARCH if sys.platform == "darwin" and hasattr(os, "O_SEARCH") else os.O_RDONLY
     for name in ("O_CLOEXEC", "O_DIRECTORY", "O_NOFOLLOW", "O_NONBLOCK"):
         flags |= getattr(os, name, 0)
     return flags

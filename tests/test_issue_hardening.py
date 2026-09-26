@@ -89,6 +89,19 @@ class DefaultSpeedTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises(ValueError):
                 native_edit.preserved(expected, actual, path)
 
+
+class PreservedIdentitySetTests(unittest.TestCase):
+    def test_native_readback_rejects_added_removed_and_duplicate_nodes(self):
+        expected = [{'id': 'one', 'value': 1}, {'id': 'two', 'value': 2}]
+        native_edit.preserved(expected, deepcopy(expected), '/materials')
+        for actual in (
+                [{'id': 'one', 'value': 1}],
+                expected + [{'id': 'three', 'value': 3}],
+                [{'id': 'one', 'value': 1}, {'id': 'one', 'value': 1}],
+                [{'id': 'one', 'value': 1}, {'value': 2}]):
+            with self.subTest(actual=actual), self.assertRaises(ValueError):
+                native_edit.preserved(expected, actual, '/materials')
+
 class SavedPhotoCompanionTests(unittest.TestCase):
     def fixture(self):
         expected = {'id': 'timeline', 'new_version': '187.0.0',
@@ -184,14 +197,16 @@ class PublishRecoveryTests(unittest.TestCase):
         self.original = {'root_path': str(self.root), 'draft_ids': 7,
                          'all_draft_store': [{'draft_id': 'existing', 'draft_name': 'untouched'}]}
         j.write(self.root / 'root_meta_info.json', self.original)
-        self.record = {'runtime_profile': 'test-profile', 'target': str(self.target), 'draft_id': 'new-id',
+        test_profile = 'jy14-headless-macos-11.4.2'
+        self.record = {'runtime_profile': test_profile, 'target': str(self.target), 'draft_id': 'new-id',
                        'files': j.files_manifest(self.out / 'draft')}
         helper = SimpleNamespace(
-            _validate_runtime_environment=lambda: {'runtime_profile': 'test-profile'},
+            _validate_runtime_environment=lambda: {'runtime_profile': test_profile},
             _ensure_editor_closed=lambda _: None, _decrypt_metadata_in_memory=j.read_json,
             **{name: getattr(runtime_io, name) for name in (
                 '_snapshot_file', '_parse_strict_json', '_revalidate_snapshot',
                 '_acquire_directory_transaction_lock', '_release_directory_transaction_lock')})
+        self.helper = helper
         for context in (patch.object(j.nd, 'DRAFT_ROOT', self.root),
                         patch.object(j.nd, 'helper', return_value=helper),
                         patch.object(j, 'read_xattrs', return_value={}),
@@ -214,9 +229,19 @@ class PublishRecoveryTests(unittest.TestCase):
                 self.publish('denied')
         self.assertFalse(self.target.exists())
         self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+        self.assertEqual(self.failure('denied')['phase'], 'index_staging')
         self.assertEqual(self.failure('denied')['recovery'], 'publish-after-fixing-cause')
         self.assertTrue(Path(self.failure('denied')['temporary_index']).is_file())
         self.assertEqual(self.publish('retry')['status'], 'created')
+
+    def test_publish_capability_is_enforced_before_live_write(self):
+        self.helper._validate_runtime_environment = lambda: {
+            'runtime_profile': 'jy14-headless-macos-11.4.0'
+        }
+        with self.assertRaisesRegex(ValueError, 'capability publish'):
+            self.publish('capability-denied')
+        self.assertFalse(self.target.exists())
+        self.assertFalse((self.folder / 'capability-denied').exists())
 
     def test_commit_failure_resumes_once_and_preserves_other_entries(self):
         with patch.object(j.os, 'replace', side_effect=OSError('injected commit failure')):
@@ -271,11 +296,17 @@ class PublishRecoveryTests(unittest.TestCase):
 
 
 class AttributePolicyTests(unittest.TestCase):
-    def test_macl_and_quarantine_changes_remain_blocked(self):
-        for name in ('com.apple.macl', 'com.apple.quarantine'):
+    def test_macl_and_provenance_are_now_tolerated_quarantine_stays_blocked(self):
+        for name, expect_raise in (('com.apple.macl', False), ('com.apple.provenance', False), ('com.apple.quarantine', True)):
             with self.subTest(name=name), patch.object(j, 'write'), patch.object(j.subprocess, 'run'), patch.object(j, 'read_xattrs', return_value={name: b'changed'}):
-                with self.assertRaisesRegex(ValueError, name):
-                    j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                if expect_raise:
+                    with self.assertRaisesRegex(ValueError, name):
+                        j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                else:
+                    try:
+                        j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                    except ValueError:
+                        self.fail('copy_xattrs raised ValueError for acceptable xattr: ' + name)
 
 
 if __name__ == '__main__':

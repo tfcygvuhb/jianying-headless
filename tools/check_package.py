@@ -12,8 +12,11 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parent.parent
 LOCAL_DIRS = {'.git', 'work', '__pycache__', '.pytest_cache', '.venv'}
-LOCAL_CODEC = 'bridge/jy14_codec_hardened_11_4'
-SUFFIXES = {'.py', '.cpp', '.h', '.json', '.md', '.yaml', '.txt'}
+LOCAL_CODEC_NAMES = {
+    'bridge/jy14_codec_hardened_11_4',
+    'bridge/jy14_codec_hardened_11_4_0_build481',
+}
+SUFFIXES = {'.py', '.cpp', '.h', '.json', '.md', '.yaml', '.txt', '.swift'}
 SPECIAL = {'.gitignore', 'NOTICE', 'LICENSE'}
 # User-approved public IG case derivatives. Never turn this into a general
 # media extension allowance: exact bytes, size and path are release-reviewed.
@@ -65,7 +68,7 @@ def source_files():
         for name in names:
             path = Path(folder) / name
             relative = path.relative_to(ROOT).as_posix()
-            if relative == LOCAL_CODEC:
+            if relative in LOCAL_CODEC_NAMES:
                 continue
             require(path.is_file() and not path.is_symlink(), 'Nonregular source: ' + relative)
             require(path.suffix in SUFFIXES or name in SPECIAL or relative in PUBLIC_MEDIA,
@@ -102,16 +105,27 @@ def main():
     wrapper = ROOT / 'skills/yichen-jianying-edit/scripts/headless_draft.py'
     for name, expected in literal(wrapper, 'PINS').items():
         require(digest(ROOT / 'engine' / name) == expected, 'Skill pin differs: ' + name)
+    for name, expected in literal(wrapper, 'TOOL_PINS').items():
+        require(digest(ROOT / 'tools' / name) == expected, 'Skill tool pin differs: ' + name)
     runtime = ROOT / 'engine/headless_runtime.py'
     manifest_path = ROOT / 'bridge/SOURCE_MANIFEST.json'
     require(digest(manifest_path) == literal(runtime, 'IO_MANIFEST_SHA'), 'IO manifest pin differs')
     manifest = json.loads(manifest_path.read_bytes())
+    codec_profiles = manifest.get('codec_profiles', {})
+    require(isinstance(codec_profiles, dict), 'Codec profile manifest is invalid')
+    codec_names = {entry.get('name') for entry in codec_profiles.values()
+                   if isinstance(entry, dict)}
+    require(None not in codec_names, 'Codec profile name is missing')
     for name, expected in manifest['source_files'].items():
         require(Path(name).name == name and digest(ROOT / 'bridge' / name) == expected, 'Bridge source pin differs: ' + name)
     for name, expected in literal(runtime, 'PINS').items():
-        if name == Path(LOCAL_CODEC).name and not (ROOT / LOCAL_CODEC).exists():
+        if name in codec_names and not (ROOT / 'bridge' / name).exists():
             continue
         require(digest(ROOT / 'bridge' / name) == expected, 'Runtime IO/codec pin differs: ' + name)
+    for name, expected in literal(runtime, 'CODEC_PINS').items():
+        path = ROOT / 'bridge' / name
+        if path.exists():
+            require(digest(path) == expected, 'Runtime codec pin differs: ' + name)
     require(digest(ROOT / 'engine/native-resource-catalog.json') ==
             literal(ROOT / 'engine/native_resources.py', 'CATALOG_SHA'), 'Resource catalog pin differs')
 

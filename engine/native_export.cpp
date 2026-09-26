@@ -1,4 +1,4 @@
-// Process-isolated adapters for exact signed Jianying 11.5.0 and 11.4.2 engines.
+// Process-isolated adapters for exact signed Jianying 11.5.0, 11.4.2 and Build 481 engines.
 // No UI attachment, account session, network, or modifications to the app.
 #include <CommonCrypto/CommonDigest.h>
 #include <atomic>
@@ -58,6 +58,10 @@ struct DraftInitReqStruct : ReqStruct {
   bool option_a = false, option_b = true;
   DraftInitReqStruct() { service = "DraftService"; api = "draftInit"; }
 };
+struct RestoreDraftReqStruct : ReqStruct {
+  RestoreDraftReqStruct() { service = "DraftService"; api = "restoreDraft"; }
+};
+static_assert(sizeof(RestoreDraftReqStruct) == sizeof(ReqStruct));
 static_assert(sizeof(ReqStruct) == 0x48 && sizeof(InitReqStruct) == 0x90);
 static_assert(sizeof(DraftInitReqStruct) == 0x80 && sizeof(std::string) == 24);
 class Session { public:
@@ -91,6 +95,8 @@ struct NativeAbi {
   const char* version;
   const char* sha256;
   size_t restore_draft, export_constructor, export_request_size, mask_hub;
+  bool invoke_restore_via_server;
+  bool export_request_verified;
   int restore_line;
   const char* restore_event;
 };
@@ -98,10 +104,18 @@ struct NativeAbi {
 // fixture validation; a matching marketing version alone is never sufficient.
 static const NativeAbi abi_profiles[] = {
   {"11.5.0", "2041482a1aaeffa4d8bd69b836f8cf38807aaad8021bca410d567c59af3bccfa",
-   0x21b86dc, 0x274b018, 0x3d8, 0x7e8, 669,
+   0x21b86dc, 0x274b018, 0x3d8, 0x7e8, false, true, 669,
    "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
   {"11.4.2", "632c8ddd09ff4a54f876cd8142eb505055ee26d944199506b230949b7e106bd1",
-   0x21234d0, 0x2681f98, 0x3d8, 0x7e8, 669,
+   0x21234d0, 0x2681f98, 0x3d8, 0x7e8, false, true, 669,
+   "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
+  // Build 481 arm64 uses Server::invoke for restore and its own default
+  // ExportStartReqStruct constructor. The 0x2125188 entry is a copy
+  // constructor and must not be called with an empty source object.
+  // Constructor, field layout, response and teardown were checked against
+  // the exact library fingerprint and isolated native exports.
+  {"11.4.0-build481", "aea79715de6097394c2f38153e11565f02a823678801cd1eafe90bcccb20c086",
+   0x2041b80, 0x2681f98, 0x3d8, 0x7e8, true, true, 669,
    "[draft_service.cpp:operator():669][LYRA] [LYRA] DraftService::restoreDraft driverRun, callback !"},
 };
 static const NativeAbi* active_abi = nullptr;
@@ -118,7 +132,8 @@ static void nativeLog(const char*, const char* file, int line, const char* funct
   if (line == 1203 && file && std::strcmp(file, "operator()") == 0 &&
       std::strstr(rendered, "[ve_export_impl.cpp:operator():1203][LYRA] export_callback: VE_INFO_COMPILE_DONE"))
     compile_done = true;
-  if (std::strstr(rendered, "export_callback: VE_ERROR_COMPILE")) compile_error = true;
+  if (std::strstr(rendered, "export_callback: VE_ERROR_COMPILE") ||
+      std::strstr(rendered, "exportcallback compile_error_callback")) compile_error = true;
   // Nested clips restore asynchronously. Exporting after an arbitrary delay
   // can race the child timeline and produce audio-only or incomplete output.
   // This exact pinned callback occurs after the complete restore driver run.
@@ -218,6 +233,8 @@ int main(int argc, char** argv) {
         timeout < 5 || timeout > 43200) throw std::runtime_error("invalid export settings");
     char* base = pinnedEngineBase();
     if (!base) throw std::runtime_error("engine differs from the supported ABI");
+    if (!active_abi->export_request_verified)
+      throw std::runtime_error("native export request ABI is not verified for this engine");
     std::ifstream source(input, std::ios::binary);
     std::string json((std::istreambuf_iterator<char>(source)), std::istreambuf_iterator<char>());
     if (json.empty()) throw std::runtime_error("empty timeline input");
@@ -243,7 +260,15 @@ int main(int argc, char** argv) {
     binding->draft = lvve::GetDraftFromJson(json);
     if (!binding->draft) throw std::runtime_error("runtime draft decode failed");
     checkResponse(server.invoke(binding, sid), "runtime draft initialization failed");
-    reinterpret_cast<void (*)(long, bool, long)>(base + active_abi->restore_draft)(sid, true, tid);
+    if (active_abi->invoke_restore_via_server) {
+      // Build 481 arm64 resolves restoreDraft as a ReqStruct dispatch target.
+      auto restoreReq = std::make_shared<lyra::RestoreDraftReqStruct>();
+      checkResponse(server.invoke(restoreReq, sid), "runtime draft restore dispatch failed");
+    } else {
+      // Preserve the previously validated raw native entry for 11.5.0 and
+      // 11.4.2; their call ABI differs from Build 481's arm64 entry.
+      reinterpret_cast<void (*)(long, bool, long)>(base + active_abi->restore_draft)(sid, true, tid);
+    }
     const auto restore_deadline = std::chrono::steady_clock::now() + std::chrono::seconds(timeout);
     while (!restore_done && std::chrono::steady_clock::now() < restore_deadline) pump(server, 20);
     if (!restore_done) throw std::runtime_error("native timeline restoration did not finish");
@@ -260,6 +285,7 @@ int main(int argc, char** argv) {
       }
     }, tid);
     if (!ready) throw std::runtime_error("session has no draft after initialization");
+    // Every row uses its version-pinned default constructor and object size.
     void* storage = ::operator new(active_abi->export_request_size);
     std::memset(storage, 0, active_abi->export_request_size);
     // The engine's own constructor/destructor manage its packed ExportConfig.

@@ -1,0 +1,190 @@
+# 剪映 11.4.0 Build 481 分阶段验收
+
+本页只适用于精确运行档案 `jy14-headless-macos-11.4.0-build481`。它记录证据，
+不因为某项离线测试通过而自动开启能力。应用签名、Team ID、动态库和 codec 哈希仍由
+`doctor` 每次重新核对。
+
+## 当前结论
+
+| 分类 | 结果 |
+| --- | --- |
+| 已验证 | 精确应用身份；profile 专用 codec；基础视频、文字、音频的离线构建；`publish`（新建工程首页登记、热注册和冷重开）；编辑副本离线构建与 `verify-build`；新建工程 `verify-build`/`verify` 回读；三类基础素材各三次隔离原生导出及正式 skill 入口复核；三类各自独立的 GUI 保存与冷重开；1.5×/0.75× 恒定变速的历史抽样时间码与三次导出，以及 0.1×/0.5×/8× 的历史单项导出、组合 GUI 冷重开和正式入口复核；后续逐帧复核发现非 1× 缺陷或证据不足，当前仅 1× 开放；Monaco TTF、固定 SHA 的 Arial TTF、STIXGeneralItalic OTF 与显式生成的 STIXGeneral Regular 别名、原 Skill 线性关键帧通道的隔离导出、GUI 冷重开及正式 Skill 导出；六种几何蒙版逐项 GUI 身份/缓存核验、保存冷重开与正式 Skill 导出；叠化及轻微抖动各自精确子集的 GUI、固定资源和正式 Skill 导出验收 |
+| 部分验证 | 原始 STIXGeneral Regular OTF 在旧 GUI 样本保存后回退为系统字体，但另一份同 SHA 的隔离工程三轮保存冷重开保留草稿字段；缺字体面板身份与视觉 A/B 正对照，门禁不变。其他静态字体没有逐项验收。2× 的隔离原生导出有 89/90 帧反例，其余未列倍率仅有离线构建或无证据。编辑副本冷重开 UI 有首轮记录；GUI 导出完成解码及视听检查，但它的 `major_brand=qt  `，不能作为标准 MP4 对照。自定义曲线的同一冷重开快照有三次自包含 work-only helper 导出，均通过 185/185 帧映射、标准 MP4 与完整解码；这不是三份独立 GUI 工程或正式 Skill 入口。LLDB 无法附加，但默认请求构造器经静态分析和独立 helper 动态验证 |
+| 未验证 | 曲线变速的计划格式、通用构建和正式 Skill 出口；贴纸、调整图层；复合片段的结构一致性与正式 Skill 出口；叠化和轻微抖动以外的特效；其余高级功能的逐项冷重开与导出。自定义曲线及复合片段各有一份隔离 GUI 冷重开和官方 GUI 导出样本，均不证明正式出口可用 |
+| 明确阻断 | `native_resources` 总门禁关闭；Build 481 导出入口对未验收的自定义字体、其他转场、六种之外的蒙版、其他特效和曲线变速继续失败关闭；复合片段子编辑后 parent、sidecar 与组合 ID 不一致，生产门禁继续关闭 |
+
+最近一次只读基线（2026-09-24）中，`doctor` 检查到 `publish=true`、
+`existing_edit=true`、`native_export=false`、`native_resources=false`，完整身份、
+运行库与 codec 哈希均匹配。命令、测试、工具链和源码哈希记录见
+[Build 481 基线报告](BUILD481-BASELINE-20260924.md)。
+这行是修改前的基线；当前基础导出已单独开启为 `native_export=true`。
+
+## 阶段 1：publish
+
+状态：`enabled`，`publish=true`（2026-09-23）。`com.apple.provenance` 和
+`com.apple.macl` 是已记录的 macOS APFS/TCC 新 inode 扩展属性。安全元数据检查允许这两项
+系统属性差异，其余内容、ACL、mode、owner/group 必须匹配。三次真实 staging 均满足此条件。
+
+验证链路：
+1. 首次 `publish`：build → verify-build → publish → 首页登记 → 打开 UI → 播放 → 保存 → 正常退出
+2. 热注册验证：第二次 `resume-publish` 返回 `already_registered`
+3. 冷重开验证：重启剪映后草稿 `Codex-Build481-Publish-20260923` 仍在首页，可 `verify` 通过
+4. 索引 SHA 从原始 `5d206512...` 更新至 `e564f3c9...`，已有草稿和素材均未变化
+
+早期隔离夹具和 staging 审计确实发现新 inode 会带来系统 provenance 属性，也曾因按字节
+比较全部 xattr 而得到 `exact_runs=0/3`。该结果是旧检查口径下的历史失败记录；不能据此声称
+当前门禁仍关闭。更新后的检查显式识别已审核的 macOS 属性，之后完成了三次真实 staging、
+首页登记、UI 打开/播放/保存、正常退出、冷重开与结构回读。首页索引及原草稿未被意外改写。
+
+## 阶段 2：existing_edit
+
+当前状态：仅离线操作 `existing_edit=true`，登记/正式导出 `existing_edit_publish=false`。以下是 2026-09-23 的历史实验记录，不代表当前入口开放。
+
+在 publish 链路上叠加验证：
+1. 对已 publish 草稿 `Codex-Build481-Publish-20260923`（3 轨：2 视频 + 1 文字 + 1 音频）
+   执行只读 `inspect`，源文件 38 个前后 SHA 一致
+2. 创建 edit plan：替换文字 + 修改音频音量
+3. `build` 成功，`verify-build` 通过
+4. `publish` 到首页（新草稿 `Codex-Build481-Edited-20260923`），返回 `created`
+5. 源草稿字节不变，四份镜像精确相等，回读 ID 集合严格验证
+6. 受限：仅支持单时间线、无云身份、无复合片段/转场/滤镜/蒙版；字体使用系统默认
+
+已知限制：速度修改受计时一致性检查，需遵循 `extra_material_refs` 策略；编辑副本 UI
+冷重开目前有首轮通过记录，尚未按多轮验收要求重复。副本流程限制为单时间线、无云身份、
+无复合片段/转场/滤镜/蒙版，字体使用系统默认。
+
+2026-09-26 在当前 macOS 26.6.2 上重验历史隔离副本：`edit verify-build` 通过，
+但已保存的 live 副本 `edit verify` 先拒绝 `last_modified_platform.os_version`
+由 26.5.1 到 26.6.2 的变化。只在内存中消除该差异继续诊断，又先后遇到三个
+默认片段 `speed=1` 和根 `fps` 字段被原生保存省略。旧副本不能以此证明当前主机
+完整 GUI 冷重开及正式导出；生产校验没有为通过此样本而放宽，仍需新的隔离副本
+逐字段与逐帧验收。
+
+2026-09-26 新的隔离 edit-build 现在把构建前后校验一致的 Build 481 runtime
+身份直接写入 `build.json.runtime`，`verify-build` 与 live verify 对有此字段的
+build 比对当前应用、库与 codec 指纹。独立新样本离线 build/verify-build 通过；
+将记录中的 codec SHA 刻意改为全零，verify-build 在读取草稿前失败。历史
+没有 runtime 字段的 v1 build 仍可作离线回读，但不能凭当前机器的身份给旧
+样本补签，也没有进入 `gui-cycle` 的资格。此改动不改变
+`existing_edit_publish=false`；当前编辑副本仍未完成 GUI 保存冷重开和正式
+导出。隔离证据在 `work/build481-edit-runtime-embedded-20260926/`。
+
+`gui-cycle` 现在按新建/编辑 build schema 分流：编辑副本须匹配完整构建时
+runtime、源工程与媒体 SHA，并使用 `native_edit verify` 回读目标路径、时长和
+轨数。六项生产代码离线契约测试通过。对上述真实隔离 edit build 的 CLI
+负例在 `existing_edit_publish=false` 处拒绝，未创建输出目录或目标工程；
+这一结果只验证失败关闭，不能替代编辑副本的 GUI 生命周期验收。
+
+当前 Build 481 的 `edit publish`、`edit resume-publish` 和正式 `export --build EDIT_BUILD` 均在写入首页或创建输出目录前拒绝。新建草稿的 `publish`/`export` 保持各自已验收的门禁。
+
+## 阶段 3：native_export
+
+状态：基础素材与 1× 正式导出 `enabled`，`native_export=true`；非 1× 倍率在正式登记和导出前拒绝，其他高级资源与运动能力保留独立门禁。
+
+GUI 导出一次完成 `ffprobe`、完整解码、抽帧和音频检查，但实际 `major_brand=qt  `，
+因此 GUI 文件的严格 MP4 容器验收未通过。LLDB 附加主进程、
+服务子进程及受控启动均被 macOS 拒绝。静态分析随后定位默认请求构造器
+`0x2681f98` 和 `0x3d8` 对象大小，并经隔离 helper 真实导出验证。完整过程见
+[A+C 运行时取证](BUILD481-AC-RUNTIME-20260924.md)与
+[请求结构分析](BUILD481-EXPORT-STATIC-20260924.md)。
+
+混合时间线连续三次隔离原生导出成功；基础视频、文字、本地 WAV 各三次独立导出也成功。
+每次均有进程退出码 0、恢复与编译完成事件、`ftypisom`、90 帧 H.264/AAC、
+完整解码、源文件哈希不变；文字画面和 220/440 Hz 音频频谱核对通过。
+正式 skill 入口再对三类构建各导出一次，均返回 `encoded-and-decoded`。
+三类各自独立的新工程在剪映 GUI 打开、保存、完全退出并冷启动复开后均正常载入；
+详见 [GUI 冷重开记录](BUILD481-GUI-REOPEN-20260924.md)。
+恒定快慢速的独立样本三次导出和画面时间码采样均通过，组合草稿在剪映保存冷重开后
+速度段仍存在；正式 Skill 对纯变速快照再导出一次，120/120 帧、标准 MP4 与完整解码均通过。
+`native_export.py` 在创建输出目录前拒绝 Build 481 未验收的高级素材；已逐项验收的固定
+叠化与轻微抖动资源通过各自精确门禁，不能据此开放总开关或其他资源。GUI 请求原始内存仍因系统调试限制没有取得，已用本机精确库指纹、
+原生构造与实际输出闭环代替该项证据；出错回调的所有分支没有穷举。
+
+2026-09-26 当前 codec 指纹下又创建一个独立 1× 视频草稿，已安装 Skill
+完成 build、verify-build、publish、GUI 保存和冷重开。长草稿名首次因 OCR
+换行在身份门失败，第二次在冷重开卡片首次点击无响应时失败；两次原始
+记录均保留。校验器加入严格分行拼接与仅限同卡片的单次重试后，第三次
+正式 `gui-cycle` 全轮通过，源素材哈希不变，最终应用退出。其后正式 Skill
+导出 `isom` H.264/AAC、90/90 帧，完整解码和全帧 OCR 标签 `0…89`
+通过；证据见 `work/build481-gui-cycle-headless-regression-20260926/REPORT.md`。
+此回归只确认 1× 隔离草稿，不改变编辑副本或非 1× 门禁。
+
+## 阶段 4：native_resources
+
+状态：`blocked`，`native_resources=false`；叠化与轻微抖动已通过独立精确子集门禁开放，不改变总门禁。
+
+`doctor` 的 `resource_evidence` 给出字体、字幕、转场、滤镜、特效、贴纸、蒙版、
+关键帧、复合片段、调整图层、会员/在线资源三层状态：`offline_build`、
+`native_reopen`、`native_export`。该矩阵只描述证据，不能授予运行权限。
+
+普通字幕、本地字体与线性关键帧的 Build 481 离线层为 `verified`；Monaco、固定 SHA 的 Arial TTF
+与 STIXGeneralItalic OTF，以及显式生成的 STIXGeneral Regular 别名完成 GUI 保存冷重开、字体绑定回读和正式 Skill 导出，
+原 Skill 支持的线性关键帧通道与六种几何蒙版完成各自的原生导出、GUI 保存冷重开和结构回读，
+按固定字节/通道/资源 key 单项开放。叠化转场已由 Build 481 官方 GUI 完成资源选择、保存、
+完全退出、冷重开及播放核验；GUI 成片为 QuickTime `qt  ` 容器，不能作为标准 MP4 证据。
+同一精确资源又完成三次隔离 helper 导出和正式 Skill 导出：各 168/168 帧、`isom`、H.264/AAC、
+完整解码通过。叠化样本音频仍需人工检查，保留同相双音约 +6.03 dB 警告。
+轻微抖动已由 Build 481 官方 GUI 加入、保存和冷重开，确认 27 个源文件及两份 macOS 26.6.2
+编译缓存身份。正式 Skill `build` → `verify-build` → `publish` → GUI 冷重开 → `verify` 全链路通过；
+effect 轨 1 段、range 0.15、speed 0.33，缓存字节已验证、四镜像相等、源文件不变。正式导出通过，
+90/90 帧、`isom`、H.264/AAC、完整解码。逐项证据见[叠化与特效验收](BUILD481-TRANSITION-EFFECT-20260924.md)。
+已移除的滤镜不恢复；贴纸和调整图层没有实现证据；复合片段子编辑后结构一致性明确失败；
+会员/在线资源不得以缓存存在或技术渲染代替账号和许可证明。原始 STIXGeneral Regular OTF 的旧 GUI 保存样本将字体路径改为应用系统字体，`verify` 因 `Planned font binding changed` 失败；另一个同 SHA 的三轮样本保留结构字段，但缺 UI 字体身份和视觉正对照，见[字体冲突审计](BUILD481-FONT-CONFLICT-20260926.md)。仅其精确 SHA 生成的本地别名已通过，其他字体未验。
+原 Skill 从未声明曲线变速支持，因此不是本次 Build 481 会员资源适配项。详见[字体 GUI 验收](BUILD481-FONT-GUI-20260924.md)。
+逐帧复核后恒速正式导出仅开放 1×，非 1× 异常及剩余倍率门禁见[恒速补验](BUILD481-SPEED-20260925.md)。
+
+### 复合片段 GUI 隔离实验（2026-09-26）
+
+用已登记的独立 3 秒视频工程，在 Build 481 官方 GUI 中执行“新建复合片段（子草稿）”。首次保存并完全退出后，父草稿、三个子草稿旁文件及组合 ID 一致；冷启动重新打开，时间线显示“复合片段1”，源画面正常。随后进入子时间线将视频缩放从 100% 改为 90%，保存、完全退出、再冷启动打开：子片段面板仍显示 90%，父片段预览保留黑边。官方 GUI 从该冷重开状态导出成功；成片 3 秒、90/90 帧 H.264/AAC、1920×1080/30 fps，所有流 `ffmpeg -xerror` 完整解码，黑边像素、440 Hz 原声频谱及源素材哈希均已检查；未做主观听感验收。
+
+结构验收仍失败：保存后父草稿内嵌 child 为 90%，子草稿旁文件仍为 100%；`combination_id` 与 wrapper 不一致，退出后的三个路径缺 child UUID 目录。`native_compound.check_sidecars` 因此拒绝。官方 GUI 对这份工程能重开和编码，不足以证明可独立复制、可靠编辑或由正式 Skill 构建/导出。Build 481 复合片段生产门禁保持关闭；隔离快照和最小复现见 `work/build481-compound-gui-20260926/REPORT.md`。
+
+该 GUI 成片的 `ftyp` 品牌为 `qt  `，不能当成正式 Skill 的 `isom` MP4 验收。导出后再次退出的草稿仍保留 parent/sidecar 失配，导出本身未修复结构。
+
+2026-09-27 又在 `work/` 的三个完整快照副本中，仅按该已知 90% 编辑同步
+父内嵌 child、旁文件 child、`combination_id` 和三个带 child UUID 的路径；
+写回精确 Build 481 密文并核对四镜像、解密回读及严格 sidecar 均通过。
+随后创建全新 draft/project/timeline/material/segment ID 的独立副本，
+把所有原 GUI 工程绝对路径重绑到副本自身资源；旧名称/路径扫描为零，
+资源文件、codec、graph 和 sidecar 预检通过。主 agent 使用现有原子首页
+登记事务的**隔离实验回调**，仅新增 `Codex-Build481-Compound-Repaired-20260926`
+一条首页记录，旧条目顺序及源素材哈希不变。首次尝试启动剪映时系统
+报告 Mac 已锁定，因此该修复副本尚无 GUI 打开、再次保存或冷重开证据。
+这次实验没有修改正式 Skill 的复合片段门禁；过程与恢复记录在
+`work/build481-compound-repair-20260926/REGISTRATION-AND-GUI.md`。
+
+## 媒体格式补验（2026-09-24）
+
+PNG、JPEG、GIF、HEVC 视频以及 MP3、WAV 音轨分别通过隔离 `build`、
+`verify-build` 和原生导出；输出均为 90/90 帧标准 MP4，完整解码通过。
+GIF 的三个时间点抽帧显示动画变化；MP3/WAV 用静音视频底片复验，输出中有
+220 Hz 主峰而无底片原声的 440 Hz 主峰。输入与 build 哈希未变。
+此外，GIF 独立草稿和包含这六种素材的 12 秒、三轨组合草稿均完成剪映保存、
+正常退出、冷启动重开与正式 `verify`；组合工程保留四段视频、两条音轨，
+PNG/JPEG/HEVC 的实际预览可见，GIF 两时刻画面发生变化，四镜像相同且源哈希未变。
+2026-09-25 又经已安装 Skill 正式 `export` 对该组合 build 单独导出：
+`work/build481-expanded-combined-media-export-20260925/result.json` 为
+`encoded-and-decoded`，12 秒、360/360 帧、1280×720、30 fps、H.264/AAC、
+`ftypisom`，`ffmpeg -xerror` 完整解码通过，源 build 未变；输出 SHA-256 为
+`5f2d54d69f177383ecff6584a7e2685b75b99be53f5f769f4f3ae7318cf1d3e4`。
+1.5/4.5 秒抽帧分别显示 PNG/JPEG，7.25/7.75 秒显示 GIF 红块位置变化，
+10.5 秒显示 HEVC 测试色条。成片 1 秒和 4 秒音频各自有 220 Hz 主峰、RMS
+约 0.088，7 秒无计划音轨时 RMS 为 0。组合成片仍没有主观听感结论；
+上述单素材导出与频谱证据仍各自独立。
+WAV 样本计划音量设为 0.5 时，输出实测增益约 0.352，不能把音量字段
+直接当作线性振幅比例。数据保存在 `work/media-coverage-build481-20260924/`
+的 `MEDIA-COVERAGE-20260924.md` 及 `gui-cold-reopen/gui-cold-reopen-acceptance.json`。
+
+## 每次阶段完成的共同门槛
+
+2026-09-26 当前 macOS 的安全目录遍历修复与正式 `verify`/1× 导出回归见
+[O_SEARCH 诊断与验收](BUILD481-IO-SEARCH-20260926.md)。2× 内容映射门禁不变；
+C++ codec 的 Build 481 专用目录访问修复、严格重建与新工程导出证据见
+[Build 481 codec 目录写入报告](BUILD481-CODEC-SEARCH-20260926.md)。
+2× 真 60 fps 输入及微秒边界的十次隔离诊断见
+[逐帧速度报告](BUILD481-SPEED-20260926.md)；未改变速度门禁。
+
+- 独立 `work/` 夹具和验收报告；源草稿与所有输入媒体前后 SHA-256 一致。
+- 全部单元测试、源码清单、`doctor`、`build`、`verify-build` 通过。
+- 未解释的字段、资源、扩展属性、ACL、身份、回调或输出差异均失败关闭。
+- 本地 `work/`、素材、草稿、日志、codec 和官方二进制不得加入 Git。

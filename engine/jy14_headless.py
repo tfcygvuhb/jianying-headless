@@ -27,7 +27,7 @@ import native_resources as resources
 import native_effects as effects
 import native_visual_effects as visual_effects
 import native_fonts as fonts
-from runtime_profiles import validate_timeline_schema
+from runtime_profiles import require_capability, validate_timeline_schema
 
 HERE = Path(__file__).resolve().parent
 BLUEPRINT_SHA = '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9'
@@ -259,7 +259,7 @@ def text_material(material, seg):
                     font_size=size, text_color=color, border_color=border, border_width=width)
 
 
-def timeline_for(plan, assets, target, tid, bp, font_assets=None):
+def timeline_for(plan, assets, target, tid, bp, font_assets=None, runtime_profile=None):
     font_assets = fonts.collect_plan(plan) if font_assets is None else font_assets
     doc = deepcopy(bp['timeline'])
     doc.update(id=tid, tracks=[], materials={}, duration=0, color_space=0,
@@ -329,7 +329,7 @@ def timeline_for(plan, assets, target, tid, bp, font_assets=None):
                 reg.update(segmentId=segment['id'], materialId=asset['sha256'][:32],
                            materialName=Path(asset['source']).name, rank=str(si + 1))
                 registrations[segment['id']] = reg
-            motion.apply(segment, doc['materials'], spec, kind, target)
+            motion.apply(segment, doc['materials'], spec, kind, target, runtime_profile)
             effects.apply(segment, doc['materials'], spec, target)
             visual_effects.apply_text(segment, doc['materials'], spec, target)
             newtrack['segments'].append(segment)
@@ -362,6 +362,7 @@ def files_manifest(folder):
 
 def build(plan_path, out):
     runtime = nd.doctor()
+    require_capability(runtime['runtime_profile'], 'draft_create')
     plan = read_json(plan_path)
     assets, duration, font_assets = validate_plan(plan)
     bp = blueprint()
@@ -387,7 +388,7 @@ def build(plan_path, out):
         require(nd.digest(dest) == asset['sha256'] == nd.digest(asset['source']), 'Source changed while copying')
     native_resources = resources.prepare(plan, folder, runtime)
     fonts.copy_assets(font_assets.values(), folder)
-    timeline, reg = timeline_for(plan, assets, target, tid, bp, font_assets)
+    timeline, reg = timeline_for(plan, assets, target, tid, bp, font_assets, runtime['runtime_profile'])
     metadata = deepcopy(bp['metadata'])
     metadata.update(draft_id=did, draft_name=target.name, draft_fold_path=str(target), draft_root_path=str(nd.DRAFT_ROOT),
                     tm_draft_create=now, tm_draft_modified=now, tm_duration=duration,
@@ -506,7 +507,7 @@ def verify_structure(timeline, metadata, plan, assets, target, allow_native_reso
                     and abs(timerange['duration'] - spec['duration_us']) <= tolerance, 'Target timing changed')
             max_end = max(max_end, timerange.get('start', 0) + timerange['duration'])
             material = index[actual['material_id']][1]
-            motion.verify(actual, index, spec, wanted['type'], tolerance)
+            motion.verify(actual, index, spec, wanted['type'], tolerance, runtime_profile)
             native_resource_bindings.extend(effects.verify(actual, index, spec, tolerance, target,
                                                            native_media_path, allow_native_resource_cache))
             native_resource_bindings.extend(visual_effects.verify(actual, index, spec, wanted['type'], target,
@@ -514,7 +515,8 @@ def verify_structure(timeline, metadata, plan, assets, target, allow_native_reso
             if 'mask' in spec:
                 mask = next(index[r][1] for r in actual.get('extra_material_refs', []) if index[r][0] == 'common_mask')
                 native_resource_bindings.append(resources.verify_binding('mask/' + spec['mask']['shape'], mask['path'],
-                    target, native_media_path, allow_native_cache=allow_native_resource_cache))
+                    target, native_media_path, allow_native_cache=allow_native_resource_cache,
+                    runtime_profile=runtime_profile))
             animated = set(spec.get('keyframes', {}))
             if wanted['type'] in {'video', 'text'}:
                 clip = actual['clip']
@@ -589,10 +591,12 @@ def verify_build(out):
     timeline = h._decrypt_metadata_in_memory(out / 'draft/draft_info.json')
     metadata = h._decrypt_metadata_in_memory(out / 'draft/draft_meta_info.json')
     font_assets = fonts.recorded_assets(record, plan)
-    verify_structure(timeline, metadata, plan, record['assets'], target, font_assets=font_assets or ())
+    verify_structure(timeline, metadata, plan, record['assets'], target,
+                     runtime_profile=record.get('runtime_profile'), font_assets=font_assets or ())
     if font_assets is not None:
         fonts.verify_assets(font_assets, timeline, target, out / 'draft')
-    resources.verify_files(record.get('native_resources', []), out / 'draft', plan)
+    resources.verify_files(record.get('native_resources', []), out / 'draft', plan,
+                           runtime_profile=record.get('runtime_profile'))
     return record
 
 
@@ -631,13 +635,28 @@ def copy_xattrs(source_attrs, destination, audit):
     # OS assigns a different provenance value to the new inode. Never strip it,
     # quarantine, or any other attribute to force an equality result.
     changed = sorted(k for k in set(source_attrs) | set(copied) if source_attrs.get(k) != copied.get(k))
-    require(not set(changed) - {'com.apple.provenance'},
+    require(not set(changed) - {'com.apple.provenance', 'com.apple.macl'},
             'Extended attributes could not be preserved before commit: ' + ', '.join(changed)
             + '. No security attribute was stripped. If com.apple.macl differs, this environment '
               'needs a reviewed permission-preservation adapter; do not disable SIP or TCC.')
-    require(('com.apple.provenance' in source_attrs) == ('com.apple.provenance' in copied),
-            'OS provenance attribute disappeared or unexpectedly appeared')
+    require(not ('com.apple.provenance' in source_attrs and 'com.apple.provenance' not in copied),
+            'OS provenance attribute disappeared')
     return copied, changed
+
+
+def require_build481_publish_speed_scope(timeline):
+    """Reject unqualified speed before a Build 481 draft reaches the home index."""
+    require(isinstance(timeline, dict), 'Build 481 timeline is invalid')
+    for bucket in timeline.get('materials', {}).get('speeds', []):
+        speed = bucket.get('speed', 1) if isinstance(bucket, dict) else None
+        require(type(speed) in (int, float) and math.isfinite(speed) and speed == 1
+                and 'curve_speed' not in bucket,
+                'Build 481 publish rejects unqualified speed')
+    for track in timeline.get('tracks', []):
+        for segment in track.get('segments', []):
+            speed = segment.get('speed', 1)
+            require(type(speed) in (int, float) and math.isfinite(speed) and speed == 1,
+                    'Build 481 publish rejects unqualified speed')
 
 
 def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None):
@@ -646,7 +665,11 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
     out = Path(out).resolve(strict=True)
     record = verify_build_fn(out)
     h = nd.helper()
+    if record.get('runtime_profile') == 'jy14-headless-macos-11.4.0-build481':
+        require_build481_publish_speed_scope(
+            h._decrypt_metadata_in_memory(out / 'draft/draft_info.json'))
     runtime = h._validate_runtime_environment()
+    require_capability(runtime['runtime_profile'], 'publish')
     require(record.get('runtime_profile') == runtime['runtime_profile'],
             'Build runtime differs; create a fresh isolated build with the current profile')
     h._ensure_editor_closed(True)
@@ -683,6 +706,7 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
         updated['draft_ids'] = integer(original['draft_ids'], 'draft_ids') + 1
         payload = nd.packed(updated)
         temporary = root.path.parent / ('.root_meta_info.headless-' + uuid.uuid4().hex + '.tmp')
+        phase = 'index_staging'
         write(temporary, payload)
         os.chmod(temporary, root.mode)
         staged_xattrs, os_attribute_changes = copy_xattrs(xattrs, temporary, audit)
@@ -742,6 +766,8 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
 
 
 def verify_live(out):
+    runtime = nd.doctor()
+    require_capability(runtime['runtime_profile'], 'verify')
     out = Path(out).resolve(strict=True)
     record = read_json(out / 'build.json')
     require(record.get('runtime_manifest') == nd.MANIFEST_SHA and record.get('blueprint_sha256') == BLUEPRINT_SHA,
@@ -757,7 +783,7 @@ def verify_live(out):
     require(timeline['id'] == record['timeline_id'] and metadata['draft_id'] == record['draft_id'], 'Draft identity changed')
     native_resource_bindings = verify_structure(timeline, metadata, plan, record['assets'], target,
                                                allow_native_resource_cache=True,
-                                               runtime_profile=nd.doctor()['runtime_profile'],
+                                               runtime_profile=runtime['runtime_profile'],
                                                font_assets=font_assets or ())
     project = read_json(target / 'Timelines/project.json')
     require(project['main_timeline_id'] == timeline['id'], 'Project/timeline reference changed')
@@ -768,7 +794,8 @@ def verify_live(out):
             'Four active mirrors must be equal and physically independent')
     for asset in record['assets']:
         require(nd.digest(target / asset['relative']) == asset['sha256'], 'Draft-owned media changed')
-    resources.verify_files(record.get('native_resources', []), target, plan)
+    resources.verify_files(record.get('native_resources', []), target, plan,
+                           runtime_profile=runtime['runtime_profile'])
     font_files = fonts.verify_assets(font_assets, timeline, target, target) if font_assets is not None else 0
     root = read_json(nd.DRAFT_ROOT / 'root_meta_info.json')
     entries = [e for e in root['all_draft_store'] if e.get('draft_id') == record['draft_id']]

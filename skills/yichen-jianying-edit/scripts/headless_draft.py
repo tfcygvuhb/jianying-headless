@@ -33,33 +33,61 @@ PROJECT_ROOT = project_root()
 BACKEND = PROJECT_ROOT / 'engine'
 PINS = {
     'native_fonts.py': 'ddd7b4c1ecd55890bd645c14930f2c5f6687794691c2280daa32673e048da5e6',
-    'runtime_profiles.py': 'f285ddf16d5ad381a9165becc443dd11352663bdb28a1b5d7eccd31b2cd6209e',
-    'jy14_headless.py': '3240e4d6124a7e313e1a7ceb2542752378caefeea8f3349576b84cc9da33ecb9',
-    'native_motion.py': '5d743caaa38c921779166e5663d36f72a0c3fdb130a690ac3942a7adcf62d6c2',
+    'runtime_profiles.py': 'f7f5320ccb3ce06693cebff578b7ce5d6aa7b7fad1d918e21b1e18ee1406c844',
+    'jy14_headless.py': '037c5cb0836d6dc67a42e01bb4e470673688ba92b63b6e1097ab7fc1bc0ee88f',
+    'native_motion.py': '3660f876b7f8b1c95c5c0ae7dc4e7b56a990a6fffd7730263a978dc84b653143',
     'native_effects.py': 'c46b2fc9221dd613f220564b752e532f8f3753dd5595aaffc24f41d5236e4e97',
-    'native_resources.py': '9bddfbb1cd688cebd69ac49f9bbf63c242522d9666a2ef7b412fe097113f68f2',
+    'native_resources.py': '7cf0b2bcc626305fee0b68c28f0d41e1a770e31022adb67b4d68b31f0c8b60ae',
     'native_visual_effects.py': '15df7e56cc7d575a552c180e72ec712f136c618d271b2f3ad2d32dd5929e844c',
-    'native-resource-catalog.json': '97af2df27463a9183fb1aa8f2ef534b37a644cb196f340fe88fdc50b456abde9',
+    'native-resource-catalog.json': '45882abc24887a2dc65e64135dff829ca95e52ad2e8a57a7c0467fe6d03c0757',
     'native_compound.py': 'eb9e7d5544e1726be291912c47a5cc917b80180a231242ca30b7b5aaf68f5bfc',
     'compound-blueprint.json': '9cba9435053280abf9072d5eaccb8586c841b11dac6854b32daf9cbdba76af8e',
-    'native_edit.py': '290d9e2f92a848f05bb6634778f93d56c0a2dad29524edd4f088d352aa4a6675',
-    'native_export.py': 'bf693c057e177be1e0d7e14e7b4692b546af04d6e40910b151089c5f0713e430',
-    'native_export.cpp': 'c60da6c65f5bb7ac733b8f5b619401be3921f9254b953a55903d4e7566156379',
-    'headless_runtime.py': '81d75135473eb531688099b45a5a2acf922b4c385a8feaf39f0c92963b46ccca',
+    'native_edit.py': 'eaecade21b8a5fa7d123e08f85be3a17efe9ac1b6a3f2e6104d053957082f748',
+    'native_export.py': 'a0e2d91bcbe92c333df609ef6a11e6ce161a0951682a05647096bf7b1fae3060',
+    'native_export.cpp': '33cb7bdb206deba3804648b9b279e4d91073af91219eab124819657834f674c2',
+    'headless_runtime.py': 'e294ea135cd1a416c8e0b854eeabc126d94189c23d22831ea3add9c94ca375a3',
     'blueprint.json': '91f7eddad5bff9af23eb88b53713c180e3e3d4054edd469140cfa9aa56bc1dc9',
+}
+TOOL_PINS = {
+    'gui_cycle.py': '1aba8ede3c95b2dafdd00dea29bb6c3ea1543a94add766424eac4e9d4a258a1b',
+    'jianying_ax.swift': '07ef2e000886b95c074d0295a041b728e800b97700c4c5837b5c1da1323c7bb2',
+    'jianying_capture_identity.swift': 'd6c4af04ceea142cafb9d5fa75d94fd0fd2c0ef3d5c467a352a5131bad5a8b03',
+    'jianying_identity_verifier.py': 'a5d41877f9bb562eba73a916272a53fa1cb520a670a0958de17c0ccf0dfdde65',
 }
 
 for name, expected in PINS.items():
     path = BACKEND / name
     if not path.is_file() or path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
         raise SystemExit('Headless component changed or unavailable; reverify before updating the pin: ' + name)
+for name, expected in TOOL_PINS.items():
+    path = PROJECT_ROOT / 'tools' / name
+    if not path.is_file() or path.is_symlink() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+        raise SystemExit('GUI component changed or unavailable; reverify before updating the pin: ' + name)
 
 sys.path.insert(0, str(BACKEND))
-entrypoint = 'jy14_headless.py'
+
+
+def require_runtime_capability(capability):
+    """Gate wrapper-only operations before loading a mutating engine entrypoint."""
+    import headless_runtime
+    runtime = headless_runtime.doctor()
+    if runtime.get('capabilities', {}).get(capability) is not True:
+        raise SystemExit('Runtime profile %s does not enable capability %s' %
+                         (runtime.get('runtime_profile', '<unknown>'), capability))
+
+
+entrypoint = BACKEND / 'jy14_headless.py'
 if len(sys.argv) > 1 and sys.argv[1] == 'edit':
-    entrypoint = 'native_edit.py'
+    require_runtime_capability('existing_edit')
+    entrypoint = BACKEND / 'native_edit.py'
     del sys.argv[1]
 elif len(sys.argv) > 1 and sys.argv[1] == 'export':
-    entrypoint = 'native_export.py'
+    require_runtime_capability('native_export')
+    entrypoint = BACKEND / 'native_export.py'
     del sys.argv[1]
-runpy.run_path(str(BACKEND / entrypoint), run_name='__main__')
+elif len(sys.argv) > 1 and sys.argv[1] == 'gui-cycle':
+    require_runtime_capability('publish')
+    require_runtime_capability('verify')
+    entrypoint = PROJECT_ROOT / 'tools/gui_cycle.py'
+    del sys.argv[1]
+runpy.run_path(str(entrypoint), run_name='__main__')

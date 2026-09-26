@@ -794,6 +794,14 @@
         "AmazingFeature/Library/ShaderData/cac811388c1e389d11bae79f24e00020/shaderMetal/f443ba63a627600bf408d3ed98fe788e_9cdfd0c87a2a30eb8148378379a0d73a_26.5.1.metallib": {
           "sha256": "01892b9aae30672eabaf16b5d8f4fb17749c0309bf9008039545d87808a0b0c9",
           "size": 35904
+        },
+        "AmazingFeature/Library/ShaderData/1fe96443d2e2eea49ef2202f8a56fd26/shaderMetal/f443ba63a627600bf408d3ed98fe788e_4c5f3b563ad8e58fb10d5673d2364278_26.6.2.metallib": {
+          "sha256": "6c1fbbdc5a9771e2a5010bc81e7f2c0ae1c000aea5ff57a2091a9c1c43959ccd",
+          "size": 30032
+        },
+        "AmazingFeature/Library/ShaderData/cac811388c1e389d11bae79f24e00020/shaderMetal/f443ba63a627600bf408d3ed98fe788e_9cdfd0c87a2a30eb8148378379a0d73a_26.6.2.metallib": {
+          "sha256": "a1b8079788f39809298b0b82d0f181c222bd06193eaf23ab87d7a87e15fc353a",
+          "size": 35904
         }
       },
       "material": {
@@ -918,5 +926,6 @@
       "capture": "@home/Documents/Codex/2026-07-27/pyjianyingdraft/work/native-features-1142-20260914/capture-transition-dissolve-v1/timeline.json",
       "capture_sha256": "5f844567508bd0b0c1740045e8144bdbe1fcb4336627cbf8cecb57a40c7b600a"
     }
-  }
+  },
+  "capture_sha256": "255805ea78cb71c4749a1e546e4ccad20c8eaf7adfdf082e3df9f8b55c409627"
 }

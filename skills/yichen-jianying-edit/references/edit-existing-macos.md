@@ -10,6 +10,10 @@
 - 源目录及已有本地素材不写入；新替换素材复制到副本 `Resources/headless-edited-media/`。草稿内路径重定向到副本；外部依赖仍保持原路径并验证字节身份。因此这是本机私有副本，不是自包含的可分发项目包。
 - 历史本机 11.4.2 的 6 秒、6 轨样本中，9 项修改经过打开、完整播放、保存、冷重开及回读，原草稿保持不变；发行后的回归状态见核心项目 `docs/VERIFICATION.md`。原始私人草稿和工作记录不随源码分发。
 
+Build 481 当前仅证明隔离副本的离线构建、首页登记和源文件不变。2026-09-26 对历史已保存副本的严格 `edit verify` 在 macOS 26.6.2 上拒绝原生 `os_version` 重盖章；只在内存中继续诊断还遇到默认片段 `speed=1`、根 `fps` 省略。不要用该历史样本的 `verify-build` 或首轮 GUI 记录宣称当前主机冷重开交付和成片已验收；详情见核心项目 `docs/BUILD481-VALIDATION.md`。
+
+Build 481 当前门禁为 `existing_edit=true`（仅离线 inspect/build/verify-build）和 `existing_edit_publish=false`。正式 Skill 入口会在登记前拒绝 edit 副本，也拒绝以 edit build 作为 Build 481 正式导出输入；下方 `edit publish` 工作流仅适用于已经具备该能力的历史运行档案。旧隔离副本的首页登记是历史实验，不代表现在开放。
+
 ## 工作流
 
 ```bash

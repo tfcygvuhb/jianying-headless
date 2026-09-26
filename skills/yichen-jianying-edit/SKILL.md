@@ -8,7 +8,14 @@ description: 在装有匹配版本剪映的 Apple Silicon Mac 上，无界面生
 默认交付可继续编辑的原生草稿。用户明确要求成片时才运行原生导出。
 无界面不等于无需安装剪映；此 Skill 不包含官方程序库或完整剪辑后端。
 主版本为 11.5.0，兼容 11.4.2；按当前安装的精确版本和指纹选择配置，不能混用两版导出快照。
+精确 `11.4.0 Build 481` 档案已通过新建草稿、首页登记和结构检查；已有工程独立副本编辑目前仅允许离线检查、构建与 `verify-build`，`edit publish`、`resume-publish` 及其正式导出因当前保存回读未验收而失败关闭。
+基础本地视频、文字和本地音频原生 MP4 导出也已通过隔离验收。未逐项验收的原生资源和高级效果
+仍保持禁用。`doctor` 会返回
+`resource_evidence` 三层证据矩阵；该矩阵只报告已验范围，不能代替 capability 门禁。
+Build 481 的正式导出只放行 1×；另通过了 Monaco TTF、固定 SHA
+`525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、固定叠化 `transition/dissolve` 与轻微抖动 `effect/light-shake` 的单项验收。叠化正式 Skill 导出为 168 帧，轻微抖动为 90 帧；均为标准 MP4 且完整解码。资源 key、文件清单和 SHA 必须匹配，各自证据见核心项目 `docs/BUILD481-RESOURCE-MATRIX.md`。`native_resources` 总开关仍关闭，不能据此使用其他资源。原始 STIXGeneral Regular OTF 的 GUI 样本出现相互冲突的字段留存结果，缺字体 UI 身份和视觉正对照，仍关闭；显式生成的固定 SHA 别名通过验收，其他字体、自定义蒙版及其他未验资源仍关闭。原 Skill 的计划格式和正式导出尚不支持曲线变速；Build 481 官方 GUI 的一条自定义曲线样本已完成保存、冷重开和 GUI 导出，生产能力仍关闭。
 高清黑白滤镜与橙色描边花字已移除，不再列为待验功能；旧计划或快照含这两项时明确拒绝，不静默去掉效果。
+逐帧复核发现 2× 与官方 GUI 源画面映射不一致，8× 与计划的逐帧映射不符；0.1×、0.5× 末帧越过源区间右边界，其他非 1× 倍率证据不足。Build 481 的正式登记和导出均拒绝非 1× 倍率。
 
 ## 先确认依赖和本次范围
 
@@ -22,6 +29,14 @@ description: 在装有匹配版本剪映的 Apple Silicon Mac 上，无界面生
 4. 转写属于独立的可选依赖。存在 `$yichen-asr` 时按其说明执行；已提供逐词稿时
    直接使用。需要付费转写必须有本次授权，不自动充值、切换服务商或重复提交。
 
+Build 481 若需使用系统 `STIXGeneral.otf` 的 Regular 字形，原始文件保存后会被剪映
+改绑系统字体。仅当源路径和 SHA 与核心项目 `docs/BUILD481-FONT-GUI-20260924.md`
+完全一致时，可在核心项目根目录显式执行
+`python3 tools/make_stix_regular_alias.py --output "$PWD/work/stix-regular-alias.otf"`，
+将新文件绝对路径填入文字 `font_path`。工具拒绝覆盖，原始文件不变；生成文件 SHA 必须为
+`154e149bfdd2daf1f9560b8103bc3484c327a4969710339ea9e8b5a1247a0717`。
+其他字体不使用此转换。
+
 ## 选择入口
 
 - 新建：读 [无界面计划与命令](references/headless-macos.md)。直接创建独立草稿，
@@ -29,6 +44,9 @@ description: 在装有匹配版本剪映的 Apple Silicon Mac 上，无界面生
 - Hypit 工程交接：读 [素材与字体交接](references/hypit-handoff.md)，将选定成片的素材、时间线和
   实际字体文件写入新建计划；文字片段可用 `font_path` 直接指定字体。
 - 修改已有草稿：读 [独立副本编辑](references/edit-existing-macos.md)，保留原项目。
+- 已登记的隔离草稿需 GUI 保存与冷重开验收时：读
+  [Build 481 GUI 生命周期](references/gui-cycle-macos.md)。`gui-cycle` 仅对
+  身份门通过的本机隔离工程开放；旧版缺身份回读的报告不能放行新能力。
 - 明确要求成片：读 [原生导出](references/export-macos.md)，只导出已验证的冻结快照。
 - 口播语义剪辑：读 [语义与音频质检](references/editing-and-qc.md) 和
   [口播计划格式](references/plan-format.md)，由 `scripts/edit_plan.py` 统一编译时间映射。
@@ -42,8 +60,9 @@ description: 在装有匹配版本剪映的 Apple Silicon Mac 上，无界面生
 - 所有输出使用本次 `work/` 下的新目录。素材副本、hash、一致性和目录锁由工具核对；
   不把 `--expect-*` 等一致性参数误当成需要用户逐项填写的审批问题。
 - 特效资源只能来自本机已合法取得的匹配缓存，保持原有许可字段与字节校验。
-  不下载、解锁、伪造授权，不能把缓存存在或技术渲染成功当作会员/商用许可。
-- 复合片段只能作为实验性的离线构建、修改与冻结快照导出；正式首页登记仍被阻止。
+  用户可在剪映官方界面按自身账号权益正常获取资源；Skill 不从非官方来源下载、
+  绕过权益或伪造授权，也不把缓存存在或技术渲染成功当作会员/商用许可。
+- 复合片段只能作为实验性的离线构建、修改与冻结快照导出；Build 481 的独立 GUI 样本虽完成子编辑、冷重开和官方导出，编辑后 parent/sidecar 引用不一致，正式构建、首页登记和 Skill 原生导出仍被阻止。
   不把它交付成已经通过原生保存持久化验收的嵌套草稿。
 - 草稿需在剪映中检查画面、字幕、音量和切口，保存、退出并冷重开后回读。
   缺少 UI 条件时继续离线部分，但明确标注原生验收未完成。
