@@ -70,6 +70,43 @@ func waitFor(_ app:NSRunningApplication, _ field:String,_ value:String,_ role:St
     } while Date()<until
     return nil
 }
+func focusedWindowHasUniqueTimelineMarker(_ app:NSRunningApplication) -> Bool {
+    let root=AXUIElementCreateApplication(app.processIdentifier)
+    guard let rawWindow=attribute(root,kAXFocusedWindowAttribute),
+          CFGetTypeID(rawWindow)==AXUIElementGetTypeID() else {
+        fputs("save requires an AX focused window\n",stderr);exit(26)
+    }
+    let window=rawWindow as! AXUIElement
+    var queue:[(AXUIElement,Int)]=[(window,0)], index=0, visited=0, markers=0
+    while index<queue.count {
+        let (element,depth)=queue[index]; index+=1; visited+=1
+        guard visited<=10000,depth<=32 else {
+            fputs("focused AX window traversal limit exceeded; save state is unknown\n",stderr);exit(26)
+        }
+        guard let role=str(element,kAXRoleAttribute) else {
+            fputs("focused AX window contains an unreadable node; save state is unknown\n",stderr);exit(26)
+        }
+        var rawDescription:CFTypeRef?
+        let descriptionStatus=AXUIElementCopyAttributeValue(element,kAXDescriptionAttribute as CFString,&rawDescription)
+        guard descriptionStatus == .success || descriptionStatus == .noValue else {
+            fputs("focused AX window description could not be read; save state is unknown\n",stderr);exit(26)
+        }
+        let description=descriptionStatus == .success ? rawDescription as? String : nil
+        if role=="AXStaticText" && description=="MainTimeLineRoot" { markers+=1 }
+        if markers>1 { fputs("focused window has an ambiguous editor marker\n",stderr);exit(20) }
+        var rawChildren:CFTypeRef?
+        let status=AXUIElementCopyAttributeValue(element,kAXChildrenAttribute as CFString,&rawChildren)
+        if status == .noValue { continue }
+        guard status == .success, let children=rawChildren as? [AXUIElement] else {
+            fputs("focused AX window subtree could not be completely read; save state is unknown\n",stderr);exit(26)
+        }
+        if depth<32 { for child in children { queue.append((child,depth+1)) } }
+        else if !children.isEmpty {
+            fputs("focused AX window depth limit exceeded; save state is unknown\n",stderr);exit(26)
+        }
+    }
+    return markers==1
+}
 func activateAndConfirm(_ app:NSRunningApplication) {
     let root=AXUIElementCreateApplication(app.processIdentifier)
     let until=Date().addingTimeInterval(8)
@@ -109,17 +146,14 @@ func checkOpenDraftHandles(_ app:NSRunningApplication,_ expectedTarget:String) {
     }
 }
 func sendCommandS(_ app:NSRunningApplication,_ expectedTarget:String) {
-    let root=AXUIElementCreateApplication(app.processIdentifier), rows=snapshot(root)
-    _=select(rows,"AXStaticText","description","MainTimeLineRoot")
-    if let window=rows.first(where:{$0.row.role=="AXWindow"}), !window.row.actions.contains(kAXRaiseAction as String) { fputs("window cannot be raised\n",stderr); exit(6) }
-    if let window=rows.first(where:{$0.row.role=="AXWindow"}) { _=AXUIElementPerformAction(window.element,kAXRaiseAction as CFString) }
     activateAndConfirm(app)
+    guard focusedWindowHasUniqueTimelineMarker(app) else { fputs("focused window is not the editor timeline\n",stderr);exit(6) }
     checkOpenDraftHandles(app,expectedTarget)
     activateAndConfirm(app)
     let down=CGEvent(keyboardEventSource:nil,virtualKey:UInt16(kVK_ANSI_S),keyDown:true)!,up=CGEvent(keyboardEventSource:nil,virtualKey:UInt16(kVK_ANSI_S),keyDown:false)!
     down.flags=[.maskCommand];up.flags=[.maskCommand]
     down.postToPid(app.processIdentifier);up.postToPid(app.processIdentifier)
-    guard waitFor(app,"description","MainTimeLineRoot","AXStaticText") != nil else { fputs("editor state lost after Command+S\n",stderr); exit(7) }
+    guard focusedWindowHasUniqueTimelineMarker(app) else { fputs("editor state lost or ambiguous after Command+S\n",stderr); exit(7) }
     checkOpenDraftHandles(app,expectedTarget)
     print("saved: PID-directed Cmd+S; target draft handles and MainTimeLineRoot remained visible")
 }

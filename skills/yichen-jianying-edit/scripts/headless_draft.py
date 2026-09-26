@@ -50,7 +50,7 @@ PINS = {
 }
 TOOL_PINS = {
     'gui_cycle.py': '1aba8ede3c95b2dafdd00dea29bb6c3ea1543a94add766424eac4e9d4a258a1b',
-    'jianying_ax.swift': '07ef2e000886b95c074d0295a041b728e800b97700c4c5837b5c1da1323c7bb2',
+    'jianying_ax.swift': 'de419343c94fb9d9654dbbce325f62b6eeef9df6a4d10525861301d0f3452249',
     'jianying_capture_identity.swift': 'd6c4af04ceea142cafb9d5fa75d94fd0fd2c0ef3d5c467a352a5131bad5a8b03',
     'jianying_identity_verifier.py': 'a5d41877f9bb562eba73a916272a53fa1cb520a670a0958de17c0ccf0dfdde65',
 }
