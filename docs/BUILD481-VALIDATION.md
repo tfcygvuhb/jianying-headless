@@ -60,6 +60,15 @@
 完整 GUI 冷重开及正式导出；生产校验没有为通过此样本而放宽，仍需新的隔离副本
 逐字段与逐帧验收。
 
+2026-09-26 新的隔离 edit-build 现在把构建前后校验一致的 Build 481 runtime
+身份直接写入 `build.json.runtime`，`verify-build` 与 live verify 对有此字段的
+build 比对当前应用、库与 codec 指纹。独立新样本离线 build/verify-build 通过；
+将记录中的 codec SHA 刻意改为全零，verify-build 在读取草稿前失败。历史
+没有 runtime 字段的 v1 build 仍可作离线回读，但不能凭当前机器的身份给旧
+样本补签，也没有进入 `gui-cycle` 的资格。此改动不改变
+`existing_edit_publish=false`；当前编辑副本仍未完成 GUI 保存冷重开和正式
+导出。隔离证据在 `work/build481-edit-runtime-embedded-20260926/`。
+
 当前 Build 481 的 `edit publish`、`edit resume-publish` 和正式 `export --build EDIT_BUILD` 均在写入首页或创建输出目录前拒绝。新建草稿的 `publish`/`export` 保持各自已验收的门禁。
 
 ## 阶段 3：native_export

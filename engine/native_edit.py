@@ -393,6 +393,7 @@ def validate_media_interval(segment, info, original, replacement=False, duplicat
 
 
 def build(plan_path, out):
+    runtime_before = j.nd.validate_runtime()
     plan = j.read_json(plan_path)
     j.keys(plan, {'schema', 'source', 'name', 'operations'}, 'Edit plan')
     j.require(plan.get('schema') == SCHEMA, 'Unsupported edit plan schema')
@@ -507,7 +508,10 @@ def build(plan_path, out):
     j.write(out / 'plan.json', plan)
     j.write(out / 'source-timeline.json', original)
     j.write(out / 'expected-timeline.json', timeline)
-    record = {'schema': BUILD_SCHEMA, 'runtime_manifest': j.nd.MANIFEST_SHA, 'runtime_profile': j.nd.doctor()['runtime_profile'],
+    runtime_after = j.nd.validate_runtime()
+    j.require(runtime_after == runtime_before, 'Native runtime changed during edit build')
+    record = {'schema': BUILD_SCHEMA, 'runtime_manifest': j.nd.MANIFEST_SHA,
+              'runtime_profile': runtime_before['runtime_profile'], 'runtime': runtime_before,
               'name': target.name, 'target': str(target), 'draft_id': metadata['draft_id'], 'timeline_id': timeline['id'],
               'project_id': project['id'], 'duration_us': timeline['duration'], 'source': str(source),
               'source_files': source_files, 'files': j.files_manifest(folder), 'resources': resources,
@@ -528,6 +532,7 @@ def verify_build(out):
     out = Path(out).resolve(strict=True)
     record = j.read_json(out / 'build.json')
     j.require(record['schema'] == BUILD_SCHEMA and record['runtime_manifest'] == j.nd.MANIFEST_SHA, 'Edit build provenance differs')
+    verify_recorded_runtime(record)
     j.require(j.files_manifest(out / 'draft') == record['files'], 'Edited copy changed after build')
     j.require(j.nd.digest(out / 'plan.json') == record['plan_sha256'] and
               j.nd.digest(out / 'expected-timeline.json') == record['expected_timeline_sha256'], 'Edit plan/evidence changed')
@@ -549,6 +554,17 @@ def verify_build(out):
             path = out / 'draft' / path.relative_to(target)
         j.require(path.is_file() and j.nd.digest(path) == item['sha256'], 'Edited-copy media dependency changed')
     return record
+
+
+def verify_recorded_runtime(record):
+    """Check a build-time identity when present; old v1 snapshots stay offline-readable."""
+    pinned = record.get('runtime')
+    if pinned is None:
+        return False
+    j.require(isinstance(pinned, dict) and pinned.get('runtime_hashes_verified') is True and
+              pinned.get('runtime_profile') == record['runtime_profile'] and
+              pinned == j.nd.validate_runtime(), 'Edit build runtime fingerprint changed')
+    return True
 
 
 def preserved(expected, actual, path='', frame_tolerance=0, quantized=None):
@@ -631,6 +647,7 @@ def verify_live(out):
     out = Path(out).resolve(strict=True)
     record = j.read_json(out / 'build.json')
     j.require(record.get('schema') == BUILD_SCHEMA and record.get('runtime_manifest') == j.nd.MANIFEST_SHA, 'Unknown edit build')
+    verify_recorded_runtime(record)
     j.require(j.nd.digest(out / 'plan.json') == record['plan_sha256'] and
               j.nd.digest(out / 'expected-timeline.json') == record['expected_timeline_sha256'], 'Edit evidence changed')
     plan = j.read_json(out / 'plan.json')
