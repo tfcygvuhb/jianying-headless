@@ -153,6 +153,22 @@ effect 轨 1 段、range 0.15、speed 0.33，缓存字节已验证、四镜像�
 这次实验没有修改正式 Skill 的复合片段门禁；过程与恢复记录在
 `work/build481-compound-repair-20260926/REGISTRATION-AND-GUI.md`。
 
+同一修复副本随后在三个独立 `work/` helper 进程中导出：三次均有
+restore/export 完成事件，输出为 `isom` H.264/AAC、90/90 帧、
+完整解码；与官方 GUI 成片对照，边缘黑边一致，三时点全画面 RGB
+平均绝对误差约 0.58–0.66，解码音频对齐部分相关系数约 0.999916。
+三次的源、登记草稿、旧 GUI 草稿及官方成片哈希前后不变。为使现有
+staging helper 接受 Build 481 子稿，实验仅在 `work/` 副本把三个
+sidecar 字段中的动态 UUID placeholder 规范化为 helper 已知 token；
+正式代码没有修改。此后修复副本经首页精确标题搜索进入剪映编辑器：
+草稿参数显示新标题和目录，时间线含 `复合片段1`，进入子片段后
+属性面板可见缩放 90%。CUA 发送过一次 Command-S，但未独立确认
+保存完成；随后系统再次锁屏，正常退出、冷重开、保存后 sidecar
+一致性与该副本的官方 GUI 导出仍未验。
+故这些是此样本的原生渲染证据，不能开放正式 Skill 的复合片段门禁。
+三轮日志、逐帧时间戳和视听对照见
+`work/build481-compound-helper-trial-20260927/REPORT.md`。
+
 ## 媒体格式补验（2026-09-24）
 
 PNG、JPEG、GIF、HEVC 视频以及 MP3、WAV 音轨分别通过隔离 `build`、
