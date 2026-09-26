@@ -46,7 +46,12 @@ AX 框与鼠标事件之间、同一剪映进程内切换工程时仍有很短�
 `work/build481-gui-identity-20260925/REPORT.md` 和
 `work/build481-identity-generic-click-20260925/LIVE-RESULT.md`。
 
-`tools/gui_cycle.py` 只用于已由本项目构建并登记的 `work/` 隔离草稿：
+`tools/gui_cycle.py` 只用于已由本项目构建并登记的 `work/` 隔离草稿。
+
+`jy14-edit-build/v1` 的记录、源工程/媒体 SHA 与专用 live verifier 已接入同一
+验收流程；当前 `existing_edit_publish=false`，编辑副本在 GUI 启动前拒绝。
+该分支只有离线契约测试和门禁负例，不能当作编辑副本保存冷重开证据。
+新建工程的命令为：
 
 ```bash
 python3 tools/gui_cycle.py \

@@ -69,6 +69,12 @@ build 比对当前应用、库与 codec 指纹。独立新样本离线 build/ver
 `existing_edit_publish=false`；当前编辑副本仍未完成 GUI 保存冷重开和正式
 导出。隔离证据在 `work/build481-edit-runtime-embedded-20260926/`。
 
+`gui-cycle` 现在按新建/编辑 build schema 分流：编辑副本须匹配完整构建时
+runtime、源工程与媒体 SHA，并使用 `native_edit verify` 回读目标路径、时长和
+轨数。六项生产代码离线契约测试通过。对上述真实隔离 edit build 的 CLI
+负例在 `existing_edit_publish=false` 处拒绝，未创建输出目录或目标工程；
+这一结果只验证失败关闭，不能替代编辑副本的 GUI 生命周期验收。
+
 当前 Build 481 的 `edit publish`、`edit resume-publish` 和正式 `export --build EDIT_BUILD` 均在写入首页或创建输出目录前拒绝。新建草稿的 `publish`/`export` 保持各自已验收的门禁。
 
 ## 阶段 3：native_export
