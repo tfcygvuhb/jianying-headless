@@ -30,7 +30,7 @@ Apple Silicon macOS、Python 3.9+、FFmpeg / ffprobe、Xcode 编译工具，以�
 `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧、六种几何蒙版、固定叠化 `transition/dissolve` 和轻微抖动 `effect/light-shake` 也已通过单项验收。叠化和轻微抖动正式原生导出分别为 168 和 90 帧 H.264/AAC，完整解码通过。仅匹配固定资源 key、文件清单及 SHA 时开放；`native_resources` 总门禁仍关闭。Build 481 的原始 STIXGeneral Regular OTF GUI 保存失败；显式生成的固定 SHA 别名已通过验收，其他字体仍关闭。
 
 Build 481 的 `gui-cycle` 已对本机已登记、身份门通过的 `work/` 隔离草稿恢复：它核对界面草稿名、活动进程的目标工程句柄、保存与冷重开状态；1× 和 2× 隔离工程各通过三轮。它不使 2× 导出或未验高级效果开放，旧版缺身份回读的报告不能单独作为通过证据。条件和记录见 [GUI 生命周期](references/gui-cycle-macos.md)。
-原 Skill 不支持曲线变速；其他未逐项验收的字体/原生资源仍未开放。
+原 Skill 的计划格式和正式导出尚不支持曲线变速；Build 481 官方 GUI 的一条自定义曲线样本已完成保存、冷重开和 GUI 导出，但生产能力仍关闭；其他未逐项验收的字体/原生资源仍未开放。
 导出快照必须与当前运行版本一致。
 精确工具链和哈希限制见核心项目说明；这不是任意 Mac/任意剪映版本的兼容承诺。
 
