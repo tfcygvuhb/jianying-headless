@@ -33,7 +33,7 @@ PROJECT_ROOT = project_root()
 BACKEND = PROJECT_ROOT / 'engine'
 PINS = {
     'native_fonts.py': 'ddd7b4c1ecd55890bd645c14930f2c5f6687794691c2280daa32673e048da5e6',
-    'runtime_profiles.py': '215844cf32e1a4e3caaad41fd1520f7dde1c566a518c2efc00ec82ec73a36e33',
+    'runtime_profiles.py': '0338123f7a2de96efbb0084953670040bdf8a8291013004729a133451c71cf23',
     'jy14_headless.py': '037c5cb0836d6dc67a42e01bb4e470673688ba92b63b6e1097ab7fc1bc0ee88f',
     'native_motion.py': '3660f876b7f8b1c95c5c0ae7dc4e7b56a990a6fffd7730263a978dc84b653143',
     'native_effects.py': 'c46b2fc9221dd613f220564b752e532f8f3753dd5595aaffc24f41d5236e4e97',

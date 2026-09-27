@@ -212,7 +212,12 @@ Build 481 的现有 C++ helper 单次受控调用返回 restore/export 完成事
 源快照、媒体、缓存和官方 GUI 成片的前后哈希一致。此实验绕开了正式
 `build.json`/计划入口，属于 raw GUI 快照的研究证据；正式 Skill 对缺少
 受控 build manifest 的旧离线候选已提前拒绝，未生成成片。
-`doctor` 仅将调整图层的离线构建与原生冷重开证据记为 `partial`，
+从官方快照复制出来的第二份 work-only 计划构造原型虽通过活动四镜像和
+材料引用回读，但审查发现它沿用了源 timeline/video/媒体库 ID，保留旧
+timeline、`.bak` 和 `.backup` 数据，媒体库时长与路径也未完整重建；
+不能作为独立可登记草稿或正式离线 build。`doctor` 因此继续把
+调整图层 `offline_build` 记为 `unverified`，仅把单份官方 GUI
+冷重开证据记为 `native_reopen=partial`。
 `native_export=blocked` 专指正式 helper/Skill 出口；官方 GUI 已有上述一份
 正确成片样本。正式 Skill 尚不支持该轨道，三次独立验收未完成。
 报告位于 `work/adjustment-layer-gui-20260927/REPORT.md`，单次直接 helper
