@@ -77,6 +77,20 @@ runtime、源工程与媒体 SHA，并使用 `native_edit verify` 回读目标�
 
 当前 Build 481 的 `edit publish`、`edit resume-publish` 和正式 `export --build EDIT_BUILD` 均在写入首页或创建输出目录前拒绝。新建草稿的 `publish`/`export` 保持各自已验收的门禁。
 
+2026-09-27 从新建的可丢弃源工程完成正式 build、verify-build、publish 和 verify；
+18 个源文件的冻结哈希一致。剪映 GUI 复制前 Mac 锁屏，尚未得到副本编辑、保存、
+冷重开或导出证据。`work/build481-existing-edit-disposable-20260927/REPORT.md`
+记录了这一边界。事务审计又确认 edit publisher 在首页索引替换后才调用
+`verify_live`，失败不会自动回滚；不能通过临时放开门禁试跑。现在的 edit
+`verify-build` 与 live verify 都增加了 `project.json` 的 project ID、主时间线 ID
+和唯一 timeline 成员回读，篡改负测通过，但这只强化了身份检查，
+`existing_edit_publish=false` 仍保持。
+复核旧隔离 edit build 时还发现：`resource_evidence` 只是 doctor 的证据摘要，
+调整图层从 `partial` 收紧为 `unverified` 后会造成原先逐字典比较的运行时
+指纹误报。现在只从运行时身份比较中排除这一摘要；应用、Build、Team、库与
+codec 哈希、能力位等其余字段仍精确比较。旧 build 再次 `verify-build`
+通过，源和首页均未写入。
+
 ## 阶段 3：native_export
 
 状态：基础素材与 1× 正式导出 `enabled`，`native_export=true`；非 1× 倍率在正式登记和导出前拒绝，其他高级资源与运动能力保留独立门禁。
@@ -212,16 +226,21 @@ Build 481 的现有 C++ helper 单次受控调用返回 restore/export 完成事
 源快照、媒体、缓存和官方 GUI 成片的前后哈希一致。此实验绕开了正式
 `build.json`/计划入口，属于 raw GUI 快照的研究证据；正式 Skill 对缺少
 受控 build manifest 的旧离线候选已提前拒绝，未生成成片。
-从官方快照复制出来的第二份 work-only 计划构造原型虽通过活动四镜像和
+从官方快照复制出来的第一版 work-only 计划构造原型虽通过活动四镜像和
 材料引用回读，但审查发现它沿用了源 timeline/video/媒体库 ID，保留旧
-timeline、`.bak` 和 `.backup` 数据，媒体库时长与路径也未完整重建；
-不能作为独立可登记草稿或正式离线 build。`doctor` 因此继续把
+timeline、`.bak` 和 `.backup` 数据，媒体库时长与路径也未完整重建。
+第二版仅在 `work/` 重建了 19 个身份、媒体库和路径，清理旧时间线与备份，
+六份镜像和 432 个缓存文件校验通过，六项故意篡改均被拒绝。它仍缺第二份
+独立 GUI HSL 样本来确认 `constant_material_id` 的归属，也没有自身的 GUI
+保存、冷重开或导出。因此两版都不是可登记草稿或正式离线 build。`doctor` 继续把
 调整图层 `offline_build` 记为 `unverified`，仅把单份官方 GUI
 冷重开证据记为 `native_reopen=partial`。
 `native_export=blocked` 专指正式 helper/Skill 出口；官方 GUI 已有上述一份
 正确成片样本。正式 Skill 尚不支持该轨道，三次独立验收未完成。
 报告位于 `work/adjustment-layer-gui-20260927/REPORT.md`，单次直接 helper
-证据位于 `work/adjustment-layer-gui-20260927/direct-helper-official-snapshot/`。
+证据位于 `work/adjustment-layer-gui-20260927/direct-helper-official-snapshot/`；
+第二版离线候选与负测在
+`work/adjustment-layer-plan-prototype-20260927/candidate-v2/REPORT-v2.md`。
 
 ## 媒体格式补验（2026-09-24）
 
@@ -259,6 +278,11 @@ C++ codec 的 Build 481 专用目录访问修复、严格重建与新工程导�
 无法修正每三帧一次的源画面提前；导出副本的源起点增加 1µs 虽在三次
 helper 试验中与官方 GUI 的 90 帧标签逐一相同，但改变了源区间，且音频
 仍与 GUI 明显不同。它不是生产修复，2× 继续失败关闭。
+只用现有 PCM 做的 12 个 250ms 短窗探针发现，0µs 与三份 +1µs helper
+音频逐字节相同；helper 相对 GUI 的窗内音调差并非常量，五个窗口无法用
+单音模型在 10% RMS 内拟合。它排除了“仅固定时钟偏差加 AAC 头尾裁切”
+这一简化解释，尚不能定位 AAC 与变速渲染哪一层出错。方法、输入 SHA 与
+逐窗结果在 `work/speed2-audio-nextprobe-20260927/REPORT.md`，门禁未变。
 
 - 独立 `work/` 夹具和验收报告；源草稿与所有输入媒体前后 SHA-256 一致。
 - 全部单元测试、源码清单、`doctor`、`build`、`verify-build` 通过。

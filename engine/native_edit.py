@@ -541,6 +541,7 @@ def verify_build(out):
     expected = j.read_json(out / 'expected-timeline.json')
     helper = j.nd.helper()
     j.require(helper._decrypt_metadata_in_memory(out / 'draft/draft_info.json') == expected, 'Edited timeline differs from expected full structure')
+    verify_project_identity(out / 'draft', record, expected)
     compound.validate(expected, basic_validation)
     compound.check_sidecars(expected, Path(record['target']), out / 'draft', preserved)
     font_assets = fonts.recorded_assets(record, plan)
@@ -561,10 +562,28 @@ def verify_recorded_runtime(record):
     pinned = record.get('runtime')
     if pinned is None:
         return False
+    current = j.nd.validate_runtime()
+    # resource_evidence is a diagnostic summary, not an authorization flag or
+    # binary identity. Tightening an unrelated feature's evidence must not
+    # invalidate an otherwise byte-identical edit build.
     j.require(isinstance(pinned, dict) and pinned.get('runtime_hashes_verified') is True and
               pinned.get('runtime_profile') == record['runtime_profile'] and
-              pinned == j.nd.validate_runtime(), 'Edit build runtime fingerprint changed')
+              {k: v for k, v in pinned.items() if k != 'resource_evidence'} ==
+              {k: v for k, v in current.items() if k != 'resource_evidence'},
+              'Edit build runtime fingerprint changed')
     return True
+
+
+def verify_project_identity(folder, record, timeline):
+    """Reject a copied or rewritten project that no longer owns its main timeline."""
+    project = j.read_json(folder / 'Timelines/project.json')
+    j.require(project.get('id') == record['project_id'], 'Edit copy project ID changed')
+    j.require(project.get('main_timeline_id') == record['timeline_id'] == timeline['id'],
+              'Edit copy main timeline ID changed')
+    timelines = project.get('timelines')
+    j.require(isinstance(timelines, list) and len(timelines) == 1 and
+              isinstance(timelines[0], dict) and timelines[0].get('id') == record['timeline_id'],
+              'Edit copy project timeline membership changed')
 
 
 def preserved(expected, actual, path='', frame_tolerance=0, quantized=None):
@@ -659,6 +678,7 @@ def verify_live(out):
     metadata = helper._decrypt_metadata_in_memory(target / 'draft_meta_info.json')
     j.require(metadata['draft_id'] == record['draft_id'] and metadata['draft_fold_path'] == str(target), 'Edit copy identity changed')
     expected = j.read_json(out / 'expected-timeline.json')
+    verify_project_identity(target, record, actual)
     compound.validate(actual, basic_validation)
     runtime = j.nd.doctor()['runtime_profile']
     compared, companion_identity_changes = normalize_saved_companions(expected, actual, runtime)

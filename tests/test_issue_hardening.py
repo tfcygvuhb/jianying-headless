@@ -102,6 +102,52 @@ class PreservedIdentitySetTests(unittest.TestCase):
             with self.subTest(actual=actual), self.assertRaises(ValueError):
                 native_edit.preserved(expected, actual, '/materials')
 
+
+class EditProjectIdentityTests(unittest.TestCase):
+    def test_project_id_main_timeline_and_membership_are_bound_to_edit_build(self):
+        record = {'project_id': 'new-project', 'timeline_id': 'source-timeline'}
+        timeline = {'id': 'source-timeline'}
+        good = {'id': 'new-project', 'main_timeline_id': 'source-timeline',
+                'timelines': [{'id': 'source-timeline'}]}
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            (folder / 'Timelines').mkdir()
+            path = folder / 'Timelines/project.json'
+            path.write_text(json.dumps(good), encoding='utf-8')
+            native_edit.verify_project_identity(folder, record, timeline)
+            for changed in (
+                    {'id': 'source-project'},
+                    {'main_timeline_id': 'other-timeline'},
+                    {'timelines': [{'id': 'other-timeline'}]},
+                    {'timelines': [{'id': 'source-timeline'}, {'id': 'other-timeline'}]}):
+                with self.subTest(changed=changed):
+                    path.write_text(json.dumps({**good, **changed}), encoding='utf-8')
+                    with self.assertRaises(ValueError):
+                        native_edit.verify_project_identity(folder, record, timeline)
+
+    def test_evidence_report_change_does_not_invalidate_binary_identity(self):
+        recorded = {'runtime_hashes_verified': True, 'runtime_profile': 'build481',
+                    'libvideoeditor_sha256': 'lib-hash', 'codec_sha256': 'codec-hash',
+                    'capabilities': {'existing_edit': True, 'existing_edit_publish': False},
+                    'resource_evidence': {'adjustment_layers': {'offline_build': 'partial'}}}
+        current = deepcopy(recorded)
+        current['resource_evidence']['adjustment_layers']['offline_build'] = 'unverified'
+        with patch.object(native_edit.j.nd, 'validate_runtime', return_value=current):
+            self.assertTrue(native_edit.verify_recorded_runtime(
+                {'runtime': recorded, 'runtime_profile': 'build481'}))
+            changed = deepcopy(current)
+            changed['codec_sha256'] = 'different-codec'
+        with patch.object(native_edit.j.nd, 'validate_runtime', return_value=changed):
+            with self.assertRaisesRegex(ValueError, 'fingerprint changed'):
+                native_edit.verify_recorded_runtime(
+                    {'runtime': recorded, 'runtime_profile': 'build481'})
+        changed = deepcopy(current)
+        changed['capabilities']['existing_edit_publish'] = True
+        with patch.object(native_edit.j.nd, 'validate_runtime', return_value=changed):
+            with self.assertRaisesRegex(ValueError, 'fingerprint changed'):
+                native_edit.verify_recorded_runtime(
+                    {'runtime': recorded, 'runtime_profile': 'build481'})
+
 class SavedPhotoCompanionTests(unittest.TestCase):
     def fixture(self):
         expected = {'id': 'timeline', 'new_version': '187.0.0',
