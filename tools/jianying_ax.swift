@@ -86,13 +86,15 @@ func focusedWindowHasUniqueTimelineMarker(_ app:NSRunningApplication) -> Bool {
         guard let role=str(element,kAXRoleAttribute) else {
             fputs("focused AX window contains an unreadable node; save state is unknown\n",stderr);exit(26)
         }
-        var rawDescription:CFTypeRef?
-        let descriptionStatus=AXUIElementCopyAttributeValue(element,kAXDescriptionAttribute as CFString,&rawDescription)
-        guard descriptionStatus == .success || descriptionStatus == .noValue else {
-            fputs("focused AX window description could not be read; save state is unknown\n",stderr);exit(26)
+        if role=="AXStaticText" {
+            var rawDescription:CFTypeRef?
+            let descriptionStatus=AXUIElementCopyAttributeValue(element,kAXDescriptionAttribute as CFString,&rawDescription)
+            guard descriptionStatus == .success || descriptionStatus == .noValue || descriptionStatus == .attributeUnsupported else {
+                fputs("focused AX static-text description could not be read; save state is unknown\n",stderr);exit(26)
+            }
+            let description=descriptionStatus == .success ? rawDescription as? String : nil
+            if description=="MainTimeLineRoot" { markers+=1 }
         }
-        let description=descriptionStatus == .success ? rawDescription as? String : nil
-        if role=="AXStaticText" && description=="MainTimeLineRoot" { markers+=1 }
         if markers>1 { fputs("focused window has an ambiguous editor marker\n",stderr);exit(20) }
         var rawChildren:CFTypeRef?
         let status=AXUIElementCopyAttributeValue(element,kAXChildrenAttribute as CFString,&rawChildren)

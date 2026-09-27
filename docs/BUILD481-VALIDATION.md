@@ -149,7 +149,7 @@ effect 轨 1 段、range 0.15、speed 0.33，缓存字节已验证、四镜像�
 资源文件、codec、graph 和 sidecar 预检通过。主 agent 使用现有原子首页
 登记事务的**隔离实验回调**，仅新增 `Codex-Build481-Compound-Repaired-20260926`
 一条首页记录，旧条目顺序及源素材哈希不变。首次尝试启动剪映时系统
-报告 Mac 已锁定，因此该修复副本尚无 GUI 打开、再次保存或冷重开证据。
+报告 Mac 已锁定；后续解锁后继续了 GUI 验收。
 这次实验没有修改正式 Skill 的复合片段门禁；过程与恢复记录在
 `work/build481-compound-repair-20260926/REGISTRATION-AND-GUI.md`。
 
@@ -160,12 +160,27 @@ restore/export 完成事件，输出为 `isom` H.264/AAC、90/90 帧、
 三次的源、登记草稿、旧 GUI 草稿及官方成片哈希前后不变。为使现有
 staging helper 接受 Build 481 子稿，实验仅在 `work/` 副本把三个
 sidecar 字段中的动态 UUID placeholder 规范化为 helper 已知 token；
-正式代码没有修改。此后修复副本经首页精确标题搜索进入剪映编辑器：
+正式代码没有修改。修复副本经首页精确标题搜索进入剪映编辑器：
 草稿参数显示新标题和目录，时间线含 `复合片段1`，进入子片段后
-属性面板可见缩放 90%。CUA 发送过一次 Command-S，但未独立确认
-保存完成；随后系统再次锁屏，正常退出、冷重开、保存后 sidecar
-一致性与该副本的官方 GUI 导出仍未验。
-故这些是此样本的原生渲染证据，不能开放正式 Skill 的复合片段门禁。
+属性面板可见缩放 90%。再次解锁后由 CUA 保存、返回父时间线、
+正常退出并确认主进程消失；保存后完整快照为 43 个文件，原 GUI
+测试工程的 50 个文件哈希保持不变。冷启动重开该修复副本，父片段
+黑边仍显示，子片段仍显示缩放 90%。修正后的 AX 保存工具在真实
+子/父时间线分别完成聚焦窗口标记、目标草稿句柄校验和 PID 定向
+Command-S，之前的 1800 节点全树限制不再阻断保存。
+
+**结构验收失败**：保存后 `native_compound.check_sidecars` 拒绝，
+明确报错 `Compound sidecar must be in its own draft-local directory`。
+剪映官方 GUI 又从冷重开副本导出并显示成功，MP4/MP3 文件位于
+本次隔离 `work/` 目录；导出后正常退出，49 文件快照仍在同一
+sidecar 路径检查处失败，源媒体 SHA 未变。MP4 为 `qt  `、H.264/AAC、
+1920×1080/30fps、90/90 帧、完整解码；与旧官方 GUI 成片的
+90 帧 RGB 和 132096 个/声道 AAC PCM 样本逐一相同。独立 MP3
+也完整解码，未进行主观听音。成片客观审计在
+`work/official-output-audit/REPORT.md`；结构差异在
+`work/analysis/build481-compound-gui-save-rewrite-20260927.md`。
+GUI 能打开、保留可见的 90% 并导出，不等于 sidecar 可独立复制和
+可靠修改，因此不能开放正式 Skill 的复合片段门禁。
 三轮日志、逐帧时间戳和视听对照见
 `work/build481-compound-helper-trial-20260927/REPORT.md`。
 

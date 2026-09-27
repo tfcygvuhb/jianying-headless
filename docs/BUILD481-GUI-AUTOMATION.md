@@ -64,8 +64,11 @@ python3 tools/gui_cycle.py \
 build 名称与本机首页草稿路径后才启动 GUI。Swift AX 层按 Bundle ID 选唯一
 regular 主进程，以 role、description、title 或 identifier 唯一定位控件；
 主页及常规选择/点击仍要求完整 AX 快照在原有上限内。保存只遍历当前聚焦窗口，
-轻量读取子树并要求唯一 `MainTimeLineRoot`；子树读取不完整、超过 10,000 个节点或
-32 层深度时仍失败关闭。点击后的目标状态必须从原先不存在变成唯一存在。
+完整遍历可访问的 children 并要求唯一 `MainTimeLineRoot`。AXDescription 只在
+`AXStaticText` 节点上读取；其他角色通常不支持此属性，不能因此中断遍历。
+静态文本上的 `noValue` 或 `attributeUnsupported` 按无标记处理，其他读取错误、
+子树读取不完整、超过 10,000 个节点或 32 层深度仍失败关闭；若未找到唯一标记，
+保存也会被拒绝。点击后的目标状态必须从原先不存在变成唯一存在。
 需要点击但无 AXPress 的草稿卡使用**当次 AX 框**，不保存屏幕坐标。
 每次点击后等待编辑器语义节点出现。保存前后和冷重开后分别执行结构 `verify`，
 正常从应用菜单退出并确认主进程消失；操作前还先做一次 live `verify`，
