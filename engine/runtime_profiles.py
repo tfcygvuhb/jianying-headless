@@ -61,7 +61,7 @@ _BUILD481_RESOURCE_EVIDENCE = {
     'masks': {'offline_build': 'verified', 'native_reopen': 'verified', 'native_export': 'verified'},
     'keyframes': {'offline_build': 'verified', 'native_reopen': 'verified', 'native_export': 'verified'},
     'compound_clips': {'offline_build': 'unverified', 'native_reopen': 'blocked', 'native_export': 'blocked'},
-    'adjustment_layers': {'offline_build': 'unverified', 'native_reopen': 'unverified', 'native_export': 'blocked'},
+    'adjustment_layers': {'offline_build': 'partial', 'native_reopen': 'partial', 'native_export': 'blocked'},
     'member_online_resources': {'offline_build': 'blocked', 'native_reopen': 'unverified', 'native_export': 'blocked'},
 }
 

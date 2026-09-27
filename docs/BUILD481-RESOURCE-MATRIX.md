@@ -17,8 +17,21 @@
 | 叠化转场 | 仅主视频轨相邻片段；偶数帧时长，两端须有源素材余量；端点重复帧须显式选择并审计 | Build 481 官方 GUI 选用资源 `6724845717472416269`，保存、完全退出、冷重开并播放核验；固定 tree SHA `dc006fa499721070ec74f98a2aa01ca7baa85bca5a7145b12acf6c4cdc0243da`、14 文件。GUI 导出为 QuickTime `qt  `，不作为标准 MP4 证据；之后三次 helper 与正式 Skill 导出均 168/168 帧、`isom`、H.264/AAC、完整解码 | Build 481 仅固定 `transition/dissolve` 子集开放；不开放其他转场。保留叠化音频重叠警告 |
 | 轻微抖动 | 核心代码识别 `light-shake` 和 `range`/`speed` 参数；Build 481 只接受精确捕获包与已声明参数边界 | 官方 GUI 选用、应用、保存、冷重开；27 个源文件 tree SHA `109b61dbbfb2f09a69e01e56197d840f7199f6ad51201b0b62a1bc2341929555`；含两份 macOS 26.6.2 编译缓存的 29 文件完整目录 tree SHA 为 `7f18f41e811c40c98161accd3865e2832ec8af3b5cfafc847446c6b3446777c6`。正式 Skill build/verify-build/publish、GUI 冷重开、verify、helper 画面对比和 Skill 导出均通过，90/90 帧、`isom`、H.264/AAC、完整解码 | Build 481 仅固定 `effect/light-shake` 子集开放；其他特效仍失败关闭。账号权益和商用/再分发许可未由渲染结果证明 |
 | 滤镜与花字 | 当前发行已移除高清黑白滤镜与橙色描边花字；普通文字颜色与描边仍可用 | 代码测试拒绝退役资源，不会静默降级 | 按已移除处理，不作为待适配 Build 481 功能 |
-| 贴纸、调整图层、复合片段 | 上游没有承诺独立贴纸或调整图层；复合片段仅属历史实验能力 | 贴纸、调整图层暂无 Build 481 GUI 结构样本。复合片段隔离修复副本已登记、GUI 保存冷重开并官方导出；90% 子编辑画面和声音与旧 GUI oracle 相同，但保存后 parent 的三个 sidecar 路径丢 child UUID，严格结构校验失败 | 三项均不计入当前 Skill 的 Build 481 正式支持范围；复合片段 GUI 可渲染不等于可安全独立编辑/登记/导出 |
+| 贴纸、调整图层、复合片段 | 上游没有承诺独立贴纸或调整图层；复合片段仅属历史实验能力 | 贴纸暂无 Build 481 GUI 样本。调整图层有官方 GUI 的 `adjust`/HSL -50 结构：首轮 3 秒负向导出有 1 秒空画面，修剪至 2 秒后冷重开保留参数、官方导出 60/60 帧且无黑尾；官方 2 秒快照的单次独立 helper 实验也为 `isom`、60/60 帧。旧 3 秒快照的离线时长候选与最终 GUI 保存结构仍有 HSL 路径和 placeholder ID 差异。复合片段隔离修复副本已登记、GUI 保存冷重开并官方导出；90% 子编辑画面和声音与旧 GUI oracle 相同，但保存后 parent 的三个 sidecar 路径丢 child UUID，严格结构校验失败 | 三项均不计入当前 Skill 的 Build 481 正式支持范围；GUI/raw helper 可渲染不等于正式 Skill 可安全构建/登记/导出 |
 | 会员/在线资源、在线模板 | 不属于离线 Skill 发行的受支持资源；不得绕过账号权益、伪造许可或移除身份字段 | 本次仅通过剪映官方 GUI 正常获取已验的叠化和轻微抖动本机资源；未验证会员等级或其他在线资源，Profile 标为 blocked | 不纳入任意在线资源适配，也不把缓存命中视为使用许可 |
+
+调整图层 HSL 红色 `-50` 官方 GUI 节点记录 `resource_id=7416258989467374091`。
+首次快照指向应用内 `Contents/Resources/DefaultAdjustBundle/merge_all_adjust_color`
+（348 文件、1,230,795 字节，tree SHA-256
+`8c5819ee6c0d42b8e128477c2ab7d8a8b3562c5b33b76902be6a5e517b9167c0`）；
+2 秒冷重开快照改指当前账号容器内
+`Library/Containers/com.lemon.lvpro/Data/Movies/JianyingPro/User Data/Cache/effect/7416258989467374091/2a5048e9c3ab6d08ecd65fd781d276d5`
+（432 文件、2,519,703 字节，tree SHA-256
+`863935506f672590ce8ab8fe0ef413ede8b95e67dfc4c33d055bc7689736cb55`）。
+逐文件清单在忽略目录 `work/adjustment-layer-gui-20260927/` 的
+`app-default-adjust-bundle-manifest.json` 和 `gui-hsl-cache-manifest.json`。
+相同数值 ID 也出现在已放行的 `mask/star` 材料，但路径和字节不同，不能互换。
+这份缓存只证明本机 GUI 样本的技术依赖，不代表永久授权或 Skill 正式放行。
 
 矩阵状态顺序为 `offline_build / native_reopen / native_export`。这里的“离线专项通过”
 只代表本页明确写出的代码/数据检查，不会将 Build 481 Profile 的证据层自动升级。
