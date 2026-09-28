@@ -77,14 +77,44 @@ runtime、源工程与媒体 SHA，并使用 `native_edit verify` 回读目标�
 
 当前 Build 481 的 `edit publish`、`edit resume-publish` 和正式 `export --build EDIT_BUILD` 均在写入首页或创建输出目录前拒绝。新建草稿的 `publish`/`export` 保持各自已验收的门禁。
 
-2026-09-27 从新建的可丢弃源工程完成正式 build、verify-build、publish 和 verify；
-18 个源文件的冻结哈希一致。剪映 GUI 复制前 Mac 锁屏，尚未得到副本编辑、保存、
-冷重开或导出证据。`work/build481-existing-edit-disposable-20260927/REPORT.md`
-记录了这一边界。事务审计又确认 edit publisher 在首页索引替换后才调用
-`verify_live`，失败不会自动回滚；不能通过临时放开门禁试跑。现在的 edit
+2026-09-27 从新建的可丢弃源工程完成正式 build、verify-build、publish 和 verify。
+剪映官方 GUI 随后复制此工程，只编辑副本文字为 `Edited via Codex`、
+BGM 为 -6.0 dB；保存、完全退出、冷启动重新打开后，设置仍保留。
+官方复制副本的 draft ID、名称、目录在首次保存后独立，但 project/timeline ID
+仍与源共享。窗口标题、保存位置和进程文件句柄指向副本，源工程冻结的 18 个
+文件在每阶段及导出后均未变化。官方 GUI 成片 6 秒、H.264/AAC、180/180 帧，
+完整解码通过，抽帧显示标题在计划区间；音频双源拟合的 BGM/视频轨增益比
+约为 0.5013（-6.00 dB）。GUI 容器 `major_brand="qt  "`，未做人耳试听，
+只能作为官方 GUI 对照。证据在
+`work/build481-existing-edit-disposable-20260927/REPORT.md`。这不是仓库
+`native_edit build/publish` 的副本验收，正式 `existing_edit_publish=false` 不变。
+同一冻结源随后经正式 Skill `edit inspect/build/verify-build` 在新 `work/`
+目录构造相同文字与精确 `0.5011872053146362` 音量的离线副本，均通过，
+源 18 文件仍未变。离线候选生成新 project ID，官方 GUI 复制却保留源 project ID；
+GUI 保存还省略根 fps、默认 1×、默认音量与零起点，并改写媒体路径表达、
+当前系统来源和富文本默认字段。完整递归差异见
+`work/build481-disposable-edit-structural-20260927/REPORT.md`。这些差异不能
+整体忽略，候选还没有 GUI 保存冷重开或正式导出证据。
+事务沙箱故障注入确认：edit publisher 在首页索引替换后调用最终
+`verify_live` 若失败，目录和索引都已提交，不会自动回滚。因此增加了
+编辑副本专用的提交前候选回读：在目标目录放置后、索引替换前核对
+draft 身份、完整文件清单、预期时间线、project 引用、四镜像与 inode、
+资源/媒体及候选索引身份；失败时保留未登记草稿供检查或 resume，
+不会替换首页索引。临时根目录故障注入验证了这个顺序。
+Build 481 候选登记还要求全部媒体依赖位于目标副本目录内，路径经解析后
+仍须留在副本中；外部绝对路径会在提交首页索引前拒绝。独立可丢弃源的
+离线 edit build 两项媒体依赖均位于其目标副本 `Resources/headless-media/`。
+这是登记候选的额外约束，不改变已开放版本的路径行为；它不替代提交后
+对源工程和媒体的再次核验，也不能消除并发修改的所有窗口。
+最终 `verify_live` 仍会在提交后再运行，故不能仅凭此改动临时放开门禁试跑。现在的 edit
 `verify-build` 与 live verify 都增加了 `project.json` 的 project ID、主时间线 ID
 和唯一 timeline 成员回读，篡改负测通过，但这只强化了身份检查，
 `existing_edit_publish=false` 仍保持。
+2026-09-28 复测：仓库 73 项单元测试、39 项原生导出守卫测试和
+`tools/check_package.py` 全部通过；仓库与已安装 Skill 目录逐文件一致。
+已安装入口 `doctor` 确认为 11.4.0 Build 481，运行库和 codec 哈希检查通过，
+`existing_edit_publish=false`、`native_export=true`、`native_resources=false`；
+`edit --help` 入口可用。这些是守卫及环境检查，并非编辑副本正式导出验收。
 复核旧隔离 edit build 时还发现：`resource_evidence` 只是 doctor 的证据摘要，
 调整图层从 `partial` 收紧为 `unverified` 后会造成原先逐字典比较的运行时
 指纹误报。现在只从运行时身份比较中排除这一摘要；应用、Build、Team、库与

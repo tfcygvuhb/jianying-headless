@@ -659,7 +659,8 @@ def require_build481_publish_speed_scope(timeline):
                     'Build 481 publish rejects unqualified speed')
 
 
-def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None):
+def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None,
+            verify_precommit_fn=None):
     verify_build_fn = verify_build_fn or verify_build
     verify_live_fn = verify_live_fn or verify_live
     out = Path(out).resolve(strict=True)
@@ -724,6 +725,8 @@ def publish(out, audit, resume=False, verify_build_fn=None, verify_live_fn=None)
         write(audit / 'published.json', {'target': str(target), 'draft_id': record['draft_id'], 'registered': False,
                                         'resumed': resume})
         h._ensure_editor_closed(True)
+        if verify_precommit_fn is not None:
+            verify_precommit_fn(out, target, updated)
         h._revalidate_snapshot(root, 'immediately before home index replacement')
         require(files_manifest(target) == record['files'], 'Published draft changed before registration')
         require(read_xattrs(root.path) == xattrs, 'Home index extended attributes changed')

@@ -1,6 +1,7 @@
 """Retained isolated fixtures; never modify real projects or the installed app."""
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -148,6 +149,63 @@ class EditProjectIdentityTests(unittest.TestCase):
                 native_edit.verify_recorded_runtime(
                     {'runtime': recorded, 'runtime_profile': 'build481'})
 
+
+class EditCandidateTests(unittest.TestCase):
+    def test_precommit_checks_placed_draft_identity_and_independent_mirrors(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            out, target, source = root / 'build', root / 'copy', root / 'source'
+            source.mkdir()
+            (source / 'media').write_bytes(b'fixed-source')
+            timeline = {'id': 'timeline'}
+            j.write(out / 'expected-timeline.json', timeline)
+            j.write(target / 'draft_meta_info.json',
+                    {'draft_id': 'copy-id', 'draft_fold_path': str(target)})
+            j.write(target / 'Timelines/project.json',
+                    {'id': 'project', 'main_timeline_id': 'timeline',
+                     'timelines': [{'id': 'timeline'}]})
+            for path in native_edit.mirrors(target, 'timeline'):
+                j.write(path, timeline)
+            record = {'target': str(target), 'draft_id': 'copy-id',
+                      'timeline_id': 'timeline', 'project_id': 'project',
+                      'runtime_profile': 'jy14-headless-macos-11.4.0-build481',
+                      'resources': {}, 'media_dependencies': [], 'source': str(source),
+                      'source_files': j.files_manifest(source), 'files': j.files_manifest(target)}
+            index = {'all_draft_store': [{'draft_id': 'copy-id', 'draft_fold_path': str(target)}]}
+            helper = SimpleNamespace(_decrypt_metadata_in_memory=j.read_json)
+            with patch.object(native_edit, 'verify_build', return_value=record), patch.object(
+                    native_edit.j.nd, 'helper', return_value=helper):
+                self.assertEqual(native_edit.verify_candidate(out, target, index)['index_written'], False)
+                external = root / 'external.mp4'
+                external.write_bytes(b'outside-copy')
+                record['media_dependencies'] = [{'path': str(external),
+                                                 'sha256': j.nd.digest(external)}]
+                with self.assertRaisesRegex(ValueError, 'media inside the copied draft'):
+                    native_edit.verify_candidate(out, target, index)
+                internal = target / 'Resources' / 'local.mp4'
+                internal.parent.mkdir()
+                internal.write_bytes(external.read_bytes())
+                record['media_dependencies'] = [{'path': str(internal),
+                                                 'sha256': j.nd.digest(internal)}]
+                record['files'] = j.files_manifest(target)
+                self.assertEqual(native_edit.verify_candidate(out, target, index)['index_written'], False)
+                wrong = {'all_draft_store': [{'draft_id': 'copy-id', 'draft_fold_path': '/other'}]}
+                with self.assertRaisesRegex(ValueError, 'registration identity'):
+                    native_edit.verify_candidate(out, target, wrong)
+                (target / 'draft_meta_info.json').write_text(json.dumps(
+                    {'draft_id': 'source-id', 'draft_fold_path': str(target)}), encoding='utf-8')
+                record['files'] = j.files_manifest(target)
+                with self.assertRaisesRegex(ValueError, 'draft identity'):
+                    native_edit.verify_candidate(out, target, index)
+                (target / 'draft_meta_info.json').write_text(json.dumps(
+                    {'draft_id': 'copy-id', 'draft_fold_path': str(target)}), encoding='utf-8')
+                first, second = native_edit.mirrors(target, 'timeline')[:2]
+                second.unlink()
+                os.link(first, second)
+                record['files'] = j.files_manifest(target)
+                with self.assertRaisesRegex(ValueError, 'mirrors disagree'):
+                    native_edit.verify_candidate(out, target, index)
+
 class SavedPhotoCompanionTests(unittest.TestCase):
     def fixture(self):
         expected = {'id': 'timeline', 'new_version': '187.0.0',
@@ -261,10 +319,11 @@ class PublishRecoveryTests(unittest.TestCase):
             context.start()
             self.addCleanup(context.stop)
 
-    def publish(self, name, resume=False, live=None):
+    def publish(self, name, resume=False, live=None, precommit=None):
         return j.publish(self.out, self.folder / name, resume=resume,
                          verify_build_fn=lambda _: self.record,
-                         verify_live_fn=live or (lambda _: {'status': 'verified'}))
+                         verify_live_fn=live or (lambda _: {'status': 'verified'}),
+                         verify_precommit_fn=precommit)
 
     def failure(self, name):
         return j.read_json(self.folder / name / 'failure.json')
@@ -317,6 +376,25 @@ class PublishRecoveryTests(unittest.TestCase):
         self.assertTrue(self.failure('after-commit')['index_replaced'])
         self.assertEqual(self.failure('after-commit')['recovery'], 'inspect-index-and-run-verify')
         self.assertEqual(j.read_json(self.root / 'root_meta_info.json')['draft_ids'], 8)
+
+    def test_edit_candidate_failure_stops_before_index_commit_and_can_resume(self):
+        def rejected(_, target, prepared):
+            self.assertEqual(target, self.target)
+            self.assertTrue(target.is_dir())
+            self.assertEqual(prepared['draft_ids'], 8)
+            self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+            raise ValueError('candidate identity differs')
+        with self.assertRaisesRegex(ValueError, 'candidate identity differs'):
+            self.publish('precommit-rejected', precommit=rejected)
+        self.assertEqual(self.failure('precommit-rejected')['phase'], 'draft_placed')
+        self.assertFalse(self.failure('precommit-rejected')['index_replaced'])
+        self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+        self.assertTrue(self.target.is_dir())
+        seen = []
+        def accepted(_, target, prepared):
+            seen.append((target, prepared['draft_ids']))
+        self.assertEqual(self.publish('precommit-resume', True, precommit=accepted)['status'], 'created')
+        self.assertEqual(seen, [(self.target, 8)])
 
     def test_prepared_index_mutation_is_detected(self):
         def move_and_tamper(source, target):

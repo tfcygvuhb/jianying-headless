@@ -586,6 +586,45 @@ def verify_project_identity(folder, record, timeline):
               'Edit copy project timeline membership changed')
 
 
+def verify_candidate(out, target, prepared_index):
+    """Check the placed edit copy before its home-index entry is committed."""
+    record = verify_build(out)
+    target = Path(target)
+    j.require(str(target) == record['target'] and target.is_dir() and not target.is_symlink(),
+              'Edit candidate target changed')
+    j.require(j.files_manifest(target) == record['files'], 'Edit candidate files changed')
+    helper = j.nd.helper()
+    metadata = helper._decrypt_metadata_in_memory(target / 'draft_meta_info.json')
+    timeline = helper._decrypt_metadata_in_memory(target / 'draft_info.json')
+    expected = j.read_json(Path(out) / 'expected-timeline.json')
+    j.require(metadata.get('draft_id') == record['draft_id'] and
+              metadata.get('draft_fold_path') == str(target), 'Edit candidate draft identity changed')
+    j.require(timeline == expected, 'Edit candidate timeline changed')
+    verify_project_identity(target, record, timeline)
+    active = mirrors(target, record['timeline_id'])
+    j.require(len({j.nd.digest(path) for path in active}) == 1 and
+              len({path.stat().st_ino for path in active}) == 4,
+              'Edit candidate mirrors disagree')
+    for relative, fingerprint in record['resources'].items():
+        j.require(j.nd.digest(target / relative) == fingerprint, 'Edit candidate resource changed')
+    for item in record['media_dependencies']:
+        dependency = Path(item['path'])
+        if record['runtime_profile'] == 'jy14-headless-macos-11.4.0-build481':
+            j.require(target.resolve(strict=True) in dependency.resolve(strict=True).parents,
+                      'Build 481 edit publish requires media inside the copied draft')
+        j.require(j.nd.digest(dependency) == item['sha256'],
+                  'Edit candidate media dependency changed')
+    j.require(j.files_manifest(Path(record['source'])) == record['source_files'],
+              'Edit source changed before registration')
+    entries = [entry for entry in prepared_index['all_draft_store']
+               if entry.get('draft_id') == record['draft_id'] or
+               entry.get('draft_fold_path') == str(target)]
+    j.require(len(entries) == 1 and entries[0].get('draft_id') == record['draft_id'] and
+              entries[0].get('draft_fold_path') == str(target),
+              'Prepared edit registration identity changed')
+    return {'status': 'candidate-verified', 'index_written': False}
+
+
 def preserved(expected, actual, path='', frame_tolerance=0, quantized=None):
     """Conservative readback: tolerate omitted empty defaults, never silently discard nonempty fields."""
     if isinstance(expected, dict):
@@ -763,7 +802,8 @@ def main():
         require_capability(runtime['runtime_profile'], 'existing_edit_publish')
         compound.require_publishable(j.read_json(Path(args.build) / 'expected-timeline.json'))
         result = j.publish(args.build, args.audit, resume=args.command == 'resume-publish',
-                           verify_build_fn=verify_build, verify_live_fn=verify_live)
+                           verify_build_fn=verify_build, verify_live_fn=verify_live,
+                           verify_precommit_fn=verify_candidate)
     elif args.command == 'verify':
         result = verify_live(args.build)
     else:
