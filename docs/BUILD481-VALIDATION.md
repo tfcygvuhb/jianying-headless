@@ -119,8 +119,10 @@ Build 481 候选登记还要求全部媒体依赖位于目标副本目录内，�
 128 条路径差异，仍有 20 条未解释或明确失败关闭；`is_set_beauty_mode=true`
 在三个视频材料上由 GUI 新增，现有 `preserved()` 的单向遍历会漏报。
 速度、BGM 音量、媒体路径和媒体 SHA 的四项篡改负例均被实验比较器拒绝。
-该比较器仅位于 `work/edit-bidirectional-comparator-20260928/`，没有改动
-正式 live 验证器；当前 `existing_edit_publish=false` 不变。
+该比较器仅位于 `work/edit-bidirectional-comparator-20260928/`。正式 Build 481
+live 回读另加了新增非空字段与字段类型检查，冻结 GUI 副本的
+`is_set_beauty_mode=true` 会明确拒绝；它没有接受任何未解释保存差异，
+11.4.2/11.5.0 的比较路径不变，`existing_edit_publish=false` 不变。
 复核旧隔离 edit build 时还发现：`resource_evidence` 只是 doctor 的证据摘要，
 调整图层从 `partial` 收紧为 `unverified` 后会造成原先逐字典比较的运行时
 指纹误报。现在只从运行时身份比较中排除这一摘要；应用、Build、Team、库与
@@ -334,6 +336,13 @@ helper 试验中与官方 GUI 的 90 帧标签逐一相同，但改变了源区�
 单音模型在 10% RMS 内拟合。它排除了“仅固定时钟偏差加 AAC 头尾裁切”
 这一简化解释，尚不能定位 AAC 与变速渲染哪一层出错。方法、输入 SHA 与
 逐窗结果在 `work/speed2-audio-nextprobe-20260927/REPORT.md`，门禁未变。
+2026-09-28 只读复核进一步核对 AAC 包边界：GUI 与 helper 扣除
+skip/discard 后仅差 16 个 44.1 kHz 样本，这不足以解释 2.0–2.5 秒
+音频中段的异常；0µs 与三次 +1µs helper 的解码 PCM SHA 完全相同。
+下一项可证伪实验是用逐帧标签视频和每 250ms 不同音频标记，分别记录
+GUI/helper 的编码前 A/V 时间映射和最终 AAC 包。当前不能把 +1µs、补帧
+或 AAC 首尾裁切当作 2× 修复；见
+`work/speed2-audio-investigation-20260928/REPORT.md`，门禁仍关闭。
 
 - 独立 `work/` 夹具和验收报告；源草稿与所有输入媒体前后 SHA-256 一致。
 - 全部单元测试、源码清单、`doctor`、`build`、`verify-build` 通过。

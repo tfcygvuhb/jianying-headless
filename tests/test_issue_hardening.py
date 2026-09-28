@@ -206,6 +206,29 @@ class EditCandidateTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'mirrors disagree'):
                     native_edit.verify_candidate(out, target, index)
 
+
+class EditNewFieldTests(unittest.TestCase):
+    def test_build481_rejects_new_nonempty_fields_inside_id_nodes(self):
+        expected = {'materials': {'videos': [{'id': 'video-a', 'type': 'video'}]},
+                    'tracks': [{'id': 'track-a', 'segments': [{'id': 'segment-a'}]}]}
+        actual = deepcopy(expected)
+        actual['materials']['videos'][0]['is_set_beauty_mode'] = True
+        with self.assertRaisesRegex(ValueError, 'is_set_beauty_mode'):
+            native_edit.reject_new_nonempty_fields(expected, actual)
+        del actual['materials']['videos'][0]['is_set_beauty_mode']
+        actual['tracks'][0]['segments'][0]['unreviewed_speed_mode'] = 'curve'
+        with self.assertRaisesRegex(ValueError, 'unreviewed_speed_mode'):
+            native_edit.reject_new_nonempty_fields(expected, actual)
+        del actual['tracks'][0]['segments'][0]['unreviewed_speed_mode']
+        actual['tracks'][0]['segments'][0]['empty_native_default'] = None
+        native_edit.reject_new_nonempty_fields(expected, actual)
+        with self.assertRaisesRegex(ValueError, 'Unexpected native field type: /update_time'):
+            native_edit.reject_new_nonempty_fields({'update_time': 123},
+                                                   {'update_time': {'unexpected': 'payload'}})
+        with self.assertRaisesRegex(ValueError, 'Unexpected native field type: /create_time'):
+            native_edit.reject_new_nonempty_fields({'create_time': 123},
+                                                   {'create_time': {'unexpected': 'payload'}})
+
 class SavedPhotoCompanionTests(unittest.TestCase):
     def fixture(self):
         expected = {'id': 'timeline', 'new_version': '187.0.0',

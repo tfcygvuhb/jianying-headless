@@ -673,6 +673,30 @@ def preserved(expected, actual, path='', frame_tolerance=0, quantized=None):
         j.require(expected == actual, 'Preserved value changed: ' + path)
 
 
+def reject_new_nonempty_fields(expected, actual, path=''):
+    """Keep Build 481 live readback from silently accepting new saved content."""
+    if isinstance(expected, dict) and isinstance(actual, dict):
+        for key, value in actual.items():
+            child = path + '/' + key
+            if key not in expected:
+                j.require(value in (None, False, 0, '', [], {}),
+                          'Unexpected nonempty native field: ' + child)
+            else:
+                reject_new_nonempty_fields(expected[key], value, child)
+    elif isinstance(expected, list) and isinstance(actual, list):
+        if expected and all(isinstance(item, dict) and 'id' in item for item in expected):
+            by_id = {item['id']: item for item in actual if isinstance(item, dict) and 'id' in item}
+            for item in expected:
+                if item['id'] in by_id:
+                    reject_new_nonempty_fields(item, by_id[item['id']], path + '/' + item['id'])
+        elif len(expected) == len(actual):
+            for index, (before, after) in enumerate(zip(expected, actual)):
+                reject_new_nonempty_fields(before, after, path + '/' + str(index))
+    elif type(expected) != type(actual):
+        j.require(type(expected) in (int, float) and type(actual) in (int, float),
+                  'Unexpected native field type: ' + path)
+
+
 def normalize_saved_companions(expected, actual, runtime):
     # Observed on the 11.5.0 IG photo tracks after copying a saved 187 timeline.
     # The existing helper admits only uniquely referenced, empty photo-audio
@@ -754,8 +778,11 @@ def verify_live(out):
             change['restamped_device_field_names'] = changed_device_fields
     quantized = []
     normalize = compound.normalize_paths if font_assets is None else fonts.normalize_paths
-    preserved(normalize(expected, target), normalize(compared, target),
+    normalized_expected, normalized_actual = normalize(expected, target), normalize(compared, target)
+    preserved(normalized_expected, normalized_actual,
               frame_tolerance=math.ceil(1_000_000 / expected.get('fps', 30)), quantized=quantized)
+    if runtime == 'jy14-headless-macos-11.4.0-build481':
+        reject_new_nonempty_fields(normalized_expected, normalized_actual)
     checked_fonts = fonts.verify_assets(font_assets, actual, target, target) if font_assets is not None else 0
     compound.check_order(expected, actual)
     checked_compounds = compound.check_sidecars(actual, target, target, preserved)
