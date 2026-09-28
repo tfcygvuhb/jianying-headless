@@ -115,6 +115,12 @@ Build 481 候选登记还要求全部媒体依赖位于目标副本目录内，�
 已安装入口 `doctor` 确认为 11.4.0 Build 481，运行库和 codec 哈希检查通过，
 `existing_edit_publish=false`、`native_export=true`、`native_resources=false`；
 `edit --help` 入口可用。这些是守卫及环境检查，并非编辑副本正式导出验收。
+同日只读双向比较实验读取全新可丢弃源和官方 GUI 副本的冻结结构，记录
+128 条路径差异，仍有 20 条未解释或明确失败关闭；`is_set_beauty_mode=true`
+在三个视频材料上由 GUI 新增，现有 `preserved()` 的单向遍历会漏报。
+速度、BGM 音量、媒体路径和媒体 SHA 的四项篡改负例均被实验比较器拒绝。
+该比较器仅位于 `work/edit-bidirectional-comparator-20260928/`，没有改动
+正式 live 验证器；当前 `existing_edit_publish=false` 不变。
 复核旧隔离 edit build 时还发现：`resource_evidence` 只是 doctor 的证据摘要，
 调整图层从 `partial` 收紧为 `unverified` 后会造成原先逐字典比较的运行时
 指纹误报。现在只从运行时身份比较中排除这一摘要；应用、Build、Team、库与
@@ -271,6 +277,21 @@ timeline、`.bak` 和 `.backup` 数据，媒体库时长与路径也未完整重
 证据位于 `work/adjustment-layer-gui-20260927/direct-helper-official-snapshot/`；
 第二版离线候选与负测在
 `work/adjustment-layer-plan-prototype-20260927/candidate-v2/REPORT-v2.md`。
+
+2026-09-28 第二份独立 GUI 隔离工程在保存、正常退出、冷启动重开后，界面仍读回
+红色 HSL 饱和度 `-50`，视频与调整层均为 2 秒。运行中只读结构回报显示
+两份样本的 HSL `id` 和 `constant_material_id` 各自独立，`resource_id`
+与本机 HSL cache 路径一致；第二份冷重开后的结构快照尚未封存，故这一
+身份观察还不能作为 v2 构造规则的正式验收。
+第二工程曾意外创建空时间线02；官方界面删除后中间索引曾将它标记为
+`is_marked_delete=true`。当前 `project.json` 与备份只列主时间线，
+但时间线02的空目录仍在。因此此样本可作字段身份对照，
+不能作为干净单时间线草稿的生产验收。第二份官方 GUI 成片为 2.000 秒、
+60/60 帧、H.264/AAC、完整解码通过，红 ROI 饱和度从源 `0.999935`
+变为 `0.694403`，60 帧黑像素比例最大为 0，源媒体 SHA 不变。输出仍为
+GUI 的 `qt  ` 容器。导出成功后 Mac 锁屏，未能再正常退出并封存最终目录；
+这一末尾步骤保持待补，生产调整图层门禁不变。隔离证据在
+`work/adjustment-layer-gui-second-20260927/`。
 
 ## 媒体格式补验（2026-09-24）
 
