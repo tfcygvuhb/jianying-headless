@@ -123,6 +123,13 @@ Build 481 候选登记还要求全部媒体依赖位于目标副本目录内，�
 live 回读另加了新增非空字段与字段类型检查，冻结 GUI 副本的
 `is_set_beauty_mode=true` 会明确拒绝；它没有接受任何未解释保存差异，
 11.4.2/11.5.0 的比较路径不变，`existing_edit_publish=false` 不变。
+2026-09-29 只读回放生产 `native_edit.preserved` 与
+`reject_new_nonempty_fields` 到冻结的 headless build/官方 GUI 副本：
+前者首先拒绝文字 material 的富文本 `content` 字符串差异，后者首先拒绝
+GUI 新增的 `is_set_beauty_mode=true`。只在内存中隔离这些差异后，下一处
+依次是 `os_version` 保存戳及 segment 单位速度省略。有限负测仍拒绝非单位
+速度、非计划音量和未知非空字段；不能用宽泛默认值归一化开门。
+完整参数、哈希及路径见 `work/existing-edit-gate-audit-20260929/`。
 复核旧隔离 edit build 时还发现：`resource_evidence` 只是 doctor 的证据摘要，
 调整图层从 `partial` 收紧为 `unverified` 后会造成原先逐字典比较的运行时
 指纹误报。现在只从运行时身份比较中排除这一摘要；应用、Build、Team、库与
@@ -283,17 +290,34 @@ timeline、`.bak` 和 `.backup` 数据，媒体库时长与路径也未完整重
 2026-09-28 第二份独立 GUI 隔离工程在保存、正常退出、冷启动重开后，界面仍读回
 红色 HSL 饱和度 `-50`，视频与调整层均为 2 秒。运行中只读结构回报显示
 两份样本的 HSL `id` 和 `constant_material_id` 各自独立，`resource_id`
-与本机 HSL cache 路径一致；第二份冷重开后的结构快照尚未封存，故这一
-身份观察还不能作为 v2 构造规则的正式验收。
+与本机 HSL cache 路径一致。2026-09-29 解锁后，剪映主进程经正常退出
+消失；退出后 43 文件隔离快照已封存，四份活动镜像密文相同且 inode 独立。
+受控 codec 在内存回读确认 HSL `id`、`constant_material_id`、-50 参数、
+2 秒时长和 432 文件缓存清单保持；退出时 placeholder ID 被剪映重生，
+调整层片段的 material 引用随之同步改写，HSL `extra_material_refs` 仍闭合。
+这些证据支持两份官方样本的身份形态，但不能证明 v2 离线候选已被 GUI 接受。
 第二工程曾意外创建空时间线02；官方界面删除后中间索引曾将它标记为
 `is_marked_delete=true`。当前 `project.json` 与备份只列主时间线，
 但时间线02的空目录仍在。因此此样本可作字段身份对照，
 不能作为干净单时间线草稿的生产验收。第二份官方 GUI 成片为 2.000 秒、
 60/60 帧、H.264/AAC、完整解码通过，红 ROI 饱和度从源 `0.999935`
 变为 `0.694403`，60 帧黑像素比例最大为 0，源媒体 SHA 不变。输出仍为
-GUI 的 `qt  ` 容器。导出成功后 Mac 锁屏，未能再正常退出并封存最终目录；
-这一末尾步骤保持待补，生产调整图层门禁不变。隔离证据在
-`work/adjustment-layer-gui-second-20260927/`。
+GUI 的 `qt  ` 容器。导出成功后曾因 Mac 锁屏暂停，正常退出和最终快照
+已在解锁后补齐。随后再次从首页冷启动打开同一隔离工程，GUI 回读仍显示
+视频和调整图层各 2 秒、红色 HSL 饱和度 `-50`；正常退出后封存 46 文件快照，
+四份活动镜像一致、HSL 身份和 432 文件缓存保持、源视频 SHA 不变。
+本次打开又生成 3 份 `.load.bak`，重生 placeholder ID 并同步改写片段引用；
+空时间线02孤儿目录仍在。生产调整图层门禁不变。
+隔离证据在 `work/adjustment-layer-gui-second-20260927/`，特别是
+`FINAL-EXIT-ADDENDUM.md`、`final-exit-verification-20260929.json` 与
+`postexit-reopen-20260929/SECOND-COLD-REOPEN.md`。
+
+`engine/native_adjustments.py` 现提供 Build 481 固定测试素材、2 秒红色 HSL `-50`
+的**内存结构实验**：重生 adjust 轨、片段、placeholder、HSL 和 constant ID，
+验证引用闭合、源视频 SHA 与 432 文件缓存树。8 项自包含离线测试通过，实际
+v2 隔离候选也能作为输入生成双轨图。该模块没有写草稿、首页登记、GUI 保存、
+冷重开或正式导出入口；`adjustment_layers` 的 `offline_build` 仍为
+`unverified`，生产门禁保持关闭。
 
 ## 媒体格式补验（2026-09-24）
 
@@ -343,6 +367,15 @@ skip/discard 后仅差 16 个 44.1 kHz 样本，这不足以解释 2.0–2.5 秒
 GUI/helper 的编码前 A/V 时间映射和最终 AAC 包。当前不能把 +1µs、补帧
 或 AAC 首尾裁切当作 2× 修复；见
 `work/speed2-audio-investigation-20260928/REPORT.md`，门禁仍关闭。
+2026-09-29 使用 6 秒、180 个独立画面帧 ID 与 24 个音频频率标记的
+新夹具，固定 `[0,6s)` 源区间到 `[0,3s)`、30fps、2×，三次独立沙箱 helper
+均输出 `isom`、90 帧、完整解码，输入/seed/helper 哈希前后不变。但逐帧 ID
+三次完全相同地出现 `0,2,3,6,8,9,…,177`，恰好 30 个 `k mod 3=2`
+位置比理论 `2k` 落后一个源帧。音频 24 个槽中心均可分类，5ms 扫描另有
+6 次非单调跳变，严格边界验收未通过。正式 publish 按预期拒绝 2×；
+GUI 新建空测试草稿无法通过 Accessibility 可靠放置素材并核对速度，故本轮
+没有官方 GUI oracle，不能把上述规律视为已确定根因。隔离报告和逐帧/音频
+数据见 `work/speed2-marker-trial-20260929/REPORT.md`；2× 继续失败关闭。
 
 - 独立 `work/` 夹具和验收报告；源草稿与所有输入媒体前后 SHA-256 一致。
 - 全部单元测试、源码清单、`doctor`、`build`、`verify-build` 通过。
