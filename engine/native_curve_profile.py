@@ -1,8 +1,8 @@
-"""Offline constructor for the single captured Build 481 curve profile.
+"""Offline constructor and validator for the single captured Build 481 curve profile.
 
 This is deliberately not a plan, build, publish, or export entry point. It
 accepts one exact 9-second 1x base timeline and returns a copied in-memory
-timeline carrying the one cold-reopened GUI curve sample.
+timeline carrying the one GUI save-state curve sample.
 """
 from copy import deepcopy
 import uuid
@@ -67,6 +67,19 @@ def _exact_keys(value, expected, message):
     _require(isinstance(value, dict) and set(value) == expected, message)
 
 
+def _strict_graph_equal(left, right):
+    """Compare JSON-like trees without Python's bool/int or int/float coercion."""
+    if type(left) is not type(right):
+        return False
+    if isinstance(left, dict):
+        return (left.keys() == right.keys()
+                and all(_strict_graph_equal(left[key], right[key]) for key in left))
+    if isinstance(left, list):
+        return (len(left) == len(right)
+                and all(_strict_graph_equal(a, b) for a, b in zip(left, right)))
+    return left == right
+
+
 def _check_nested_schema(timeline, video, segment):
     _exact_keys(timeline['config'], set(), 'Timeline config contains unsupported fields')
     _exact_keys(timeline['function_assistant_info'], {'fps'},
@@ -79,7 +92,7 @@ def _check_nested_schema(timeline, video, segment):
         _exact_keys(timeline[field], platform_fields,
                     'Timeline %s contains unsupported fields' % field)
         platform = timeline[field]
-        _require(platform['app_id'] == 3704 and platform['app_source'] == 'lv'
+        _require(_strict_graph_equal(platform['app_id'], 3704) and platform['app_source'] == 'lv'
                  and platform['app_version'] == '11.4.0' and platform['os'] == 'mac'
                  and all(isinstance(platform[key], str) and platform[key]
                          for key in ('device_id', 'hard_disk_id', 'mac_address', 'os_version')),
@@ -88,7 +101,7 @@ def _check_nested_schema(timeline, video, segment):
     _exact_keys(timeline['uneven_animation_template_info'], set(),
                 'Timeline animation info contains unsupported fields')
     _exact_keys(timeline['keyframes'], set(), 'Timeline keyframes contain unsupported fields')
-    _require(timeline['keyframes'] == {},
+    _require(_strict_graph_equal(timeline['keyframes'], {}),
              'Curve profile does not accept timeline keyframes')
     _exact_keys(video['crop'], set(), 'Video crop contains unsupported fields')
     _exact_keys(video['stable'], {'time_range'}, 'Video stable metadata contains unsupported fields')
@@ -112,28 +125,28 @@ def _check_nested_schema(timeline, video, segment):
     for field in ('render_timerange', 'responsive_layout', 'uniform_scale'):
         _exact_keys(segment[field], set(), 'Video %s contains unsupported fields' % field)
     _exact_keys(segment['hdr_settings'], {'mode'}, 'Video HDR settings contain unsupported fields')
-    _require(segment['clip'] == {
+    _require(_strict_graph_equal(segment['clip'], {
         'flip': {}, 'scale': {'x': 1.0, 'y': 1.0},
         'transform': {'x': 0.0, 'y': 0.0},
-    } and segment['enable_adjust_mask'] is False
+    }) and segment['enable_adjust_mask'] is False
              and segment['enable_hsl'] is False
-             and segment['hdr_settings'] == {'mode': 1}
+             and _strict_graph_equal(segment['hdr_settings'], {'mode': 1})
              and segment['source'] == 'segmentsourcenormal',
              'Base video segment has unreviewed visual or source state')
-    _require(video['beauty_face_auto_preset'] == {}
+    _require(_strict_graph_equal(video['beauty_face_auto_preset'], {})
              and video['category_name'] == 'local'
-             and video['check_flag'] == 62978047
-             and video['crop'] == {}
+             and _strict_graph_equal(video['check_flag'], 62978047)
+             and _strict_graph_equal(video['crop'], {})
              and video['is_set_beauty_mode'] is True
              and video['material_id'] == ''
-             and video['matting'] == {'path': ''}
-             and video['stable'] == {'time_range': {}}
+             and _strict_graph_equal(video['matting'], {'path': ''})
+             and _strict_graph_equal(video['stable'], {'time_range': {}})
              and video['type'] == 'video'
-             and video['video_algorithm'] == {
+             and _strict_graph_equal(video['video_algorithm'], {
                  'path': '', 'story_video_modify_video_config': {}}
-             and video['video_mask_shadow'] == {'path': '', 'resource_id': ''}
-             and video['video_mask_stroke'] == {
-                 'path': '', 'resource_id': '', 'type': ''},
+             ) and _strict_graph_equal(video['video_mask_shadow'], {'path': '', 'resource_id': ''})
+             and _strict_graph_equal(video['video_mask_stroke'], {
+                 'path': '', 'resource_id': '', 'type': ''}),
              'Base video material has unreviewed processing state')
 
 
@@ -153,22 +166,24 @@ def _material_index(timeline):
 
 def _validate_base(timeline, source_fps, source_sha256):
     _exact_keys(timeline, TIMELINE_FIELDS, 'Timeline contains unsupported fields')
-    _require(timeline.get('new_version') == '185.0.0' and timeline.get('version') == 360000,
+    _require(_strict_graph_equal(timeline.get('new_version'), '185.0.0')
+             and _strict_graph_equal(timeline.get('version'), 360000),
              'Curve profile is pinned to the Build 481 timeline schema')
     _require(type(source_fps) is int and source_fps == SOURCE_FPS,
              'Curve profile requires the captured 30 fps source')
-    _require(source_sha256 == SOURCE_SHA256,
+    _require(_strict_graph_equal(source_sha256, SOURCE_SHA256),
              'Caller-verified source SHA-256 does not match the captured media')
-    _require(timeline.get('canvas_config') == {'width': 1280, 'height': 720},
+    _require(_strict_graph_equal(timeline.get('canvas_config'), {'width': 1280, 'height': 720}),
              'Curve profile requires a 1280x720 canvas')
     _require(type(timeline.get('duration')) is int and timeline['duration'] == SOURCE_DURATION_US,
              'Base timeline duration must be exactly 9 seconds')
-    _require(timeline.get('color_space') == 0
+    _require(_strict_graph_equal(timeline.get('color_space'), 0)
              and timeline.get('render_index_track_mode_on') is True
              and timeline.get('path') == '',
              'Base timeline has unreviewed render state')
     tracks = timeline.get('tracks')
-    _require(isinstance(tracks, list) and len(tracks) == 1 and tracks[0].get('type') == 'video',
+    _require(isinstance(tracks, list) and len(tracks) == 1
+             and _strict_graph_equal(tracks[0].get('type'), 'video'),
              'Base timeline must contain exactly one video track')
     track = tracks[0]
     _exact_keys(track, VIDEO_TRACK_FIELDS, 'Video track contains unsupported fields')
@@ -176,8 +191,8 @@ def _validate_base(timeline, source_fps, source_sha256):
              'Base video track must contain exactly one segment')
     segment = track['segments'][0]
     _exact_keys(segment, VIDEO_SEGMENT_FIELDS, 'Video segment contains unsupported fields')
-    _require(segment.get('source_timerange') == {'duration': SOURCE_DURATION_US}
-             and segment.get('target_timerange') == {'duration': SOURCE_DURATION_US},
+    _require(_strict_graph_equal(segment.get('source_timerange'), {'duration': SOURCE_DURATION_US})
+             and _strict_graph_equal(segment.get('target_timerange'), {'duration': SOURCE_DURATION_US}),
              'Base segment must be the untrimmed 9-second source at 1x')
 
     materials = timeline.get('materials')
@@ -203,8 +218,9 @@ def _validate_base(timeline, source_fps, source_sha256):
     video = video_ref[1]
     _check_nested_schema(timeline, video, segment)
     _require(video.get('path') == SOURCE_PATH and video.get('material_name') == SOURCE_NAME
-             and video.get('width') == 1280 and video.get('height') == 720
-             and video.get('duration') == 24_000_000,
+             and _strict_graph_equal(video.get('width'), 1280)
+             and _strict_graph_equal(video.get('height'), 720)
+             and _strict_graph_equal(video.get('duration'), 24_000_000),
              'Video material does not match the pinned source SHA and media properties')
     _require(len(segment.get('extra_material_refs', [])) == 6
              and sum(1 for ref in segment['extra_material_refs']
@@ -217,7 +233,8 @@ def _validate_base(timeline, source_fps, source_sha256):
     speed_ref = index[speed_id]
     _exact_keys(speed_ref[1], {'id', 'type'},
                 'Base speed material does not match the exact cold-reopened default 1x shape')
-    _require(speed_ref[1].get('type') == 'speed', 'Base speed material must be 1x')
+    _require(_strict_graph_equal(speed_ref[1].get('type'), 'speed'),
+             'Base speed material must be 1x')
     for ref in [segment['material_id']] + segment['extra_material_refs']:
         _require(ref in index, 'Timeline contains a dangling material reference')
     identifiers = [timeline.get('id'), track.get('id'), segment.get('id')]
@@ -229,28 +246,18 @@ def _validate_base(timeline, source_fps, source_sha256):
     return track, segment, speed_id
 
 
-def build_curve_profile(base_timeline, *, runtime_profile, source_fps, source_sha256):
-    """Return the exact cold-reopened five-point curve on a copied base graph.
+def _base_identifiers(timeline):
+    track = timeline['tracks'][0]
+    identifiers = {timeline['id'], track['id'], track['segments'][0]['id']}
+    identifiers.update(_material_index(timeline))
+    identifiers.update(node['local_material_id'] for node in timeline['materials']['videos'])
+    return identifiers
 
-    ``source_sha256`` must come from a caller-side byte hash; this pure graph
-    constructor checks the supplied digest and the timeline's pinned media path
-    but does not open or hash media files.
-    The observed scalar and target duration are preserved independently. Their
-    arithmetic discrepancy is intentional evidence from the GUI snapshot.
-    """
-    _require(runtime_profile == PROFILE_1140_BUILD481,
-             'Curve profile is pinned to Jianying 11.4.0 Build 481')
-    _require(isinstance(base_timeline, dict), 'Base timeline must be an object')
-    track, segment, old_speed_id = _validate_base(base_timeline, source_fps, source_sha256)
+
+def _candidate_with_speed_id(base_timeline, old_speed_id, new_speed_id):
+    """Build the captured graph deterministically for a supplied fresh ID."""
     result = deepcopy(base_timeline)
-    result_track = result['tracks'][0]
-    result_segment = result_track['segments'][0]
-    used = {result['id'], result_track['id'], result_segment['id']}
-    used.update(_material_index(result))
-    used.update(node['local_material_id'] for node in result['materials']['videos'])
-    new_speed_id = str(uuid.uuid4()).upper()
-    while new_speed_id in used:
-        new_speed_id = str(uuid.uuid4()).upper()
+    result_segment = result['tracks'][0]['segments'][0]
     speed_material = {
         'id': new_speed_id,
         'type': 'speed',
@@ -271,6 +278,69 @@ def build_curve_profile(base_timeline, *, runtime_profile, source_fps, source_sh
     result_segment['source_timerange'] = {'duration': SOURCE_DURATION_US}
     result_segment['target_timerange'] = {'duration': TARGET_DURATION_US}
     result['duration'] = TARGET_DURATION_US
-    _require(sum(ref == new_speed_id for ref in result_segment['extra_material_refs']) == 1,
+    _require(result_segment['extra_material_refs'].count(new_speed_id) == 1,
              'Generated speed material reference did not close')
     return result
+
+
+def _speed_id_from_candidate(candidate):
+    materials = candidate.get('materials') if isinstance(candidate, dict) else None
+    speeds = materials.get('speeds') if isinstance(materials, dict) else None
+    _require(isinstance(speeds, list) and len(speeds) == 1
+             and isinstance(speeds[0], dict) and isinstance(speeds[0].get('id'), str),
+             'Candidate must contain exactly one identified speed material')
+    return speeds[0]['id']
+
+
+def validate_curve_candidate(base_timeline, candidate_timeline, *, runtime_profile,
+                             source_fps, source_sha256):
+    """Validate one exact profile candidate; return its approved metadata.
+
+    The candidate ID is checked and used to derive the expected graph. No
+    random ID is generated in this validator.
+    """
+    _require(_strict_graph_equal(runtime_profile, PROFILE_1140_BUILD481),
+             'Curve profile is pinned to Jianying 11.4.0 Build 481')
+    _require(isinstance(base_timeline, dict), 'Base timeline must be an object')
+    before = deepcopy(base_timeline)
+    _, _, old_speed_id = _validate_base(base_timeline, source_fps, source_sha256)
+    new_speed_id = _speed_id_from_candidate(candidate_timeline)
+    try:
+        parsed_id = uuid.UUID(new_speed_id)
+    except (AttributeError, ValueError):
+        parsed_id = None
+    _require(parsed_id is not None and parsed_id.version == 4
+             and parsed_id.variant == uuid.RFC_4122
+             and str(parsed_id).upper() == new_speed_id
+             and new_speed_id not in _base_identifiers(base_timeline),
+             'Candidate speed ID must be a fresh canonical uppercase UUIDv4')
+    expected = _candidate_with_speed_id(base_timeline, old_speed_id, new_speed_id)
+    _require(_strict_graph_equal(candidate_timeline, expected),
+             'Candidate differs from the exact Build 481 five-point curve profile')
+    _require(_strict_graph_equal(base_timeline, before),
+             'Curve candidate validation mutated the base timeline')
+    return {'profile_id': 'b481-custom-five-point-v1', 'speed_material_id': new_speed_id,
+            'source_sha256': SOURCE_SHA256, 'source_fps': SOURCE_FPS,
+            'source_duration_us': SOURCE_DURATION_US, 'target_duration_us': TARGET_DURATION_US}
+
+
+def build_curve_profile(base_timeline, *, runtime_profile, source_fps, source_sha256):
+    """Return the exact GUI save-state five-point curve on a copied base graph.
+
+    ``source_sha256`` must come from a caller-side byte hash; this pure graph
+    constructor checks the supplied digest and the timeline's pinned media path
+    but does not open or hash media files.
+    The observed scalar and target duration are preserved independently. Their
+    arithmetic discrepancy is intentional evidence from the GUI snapshot.
+    The distinct cold-reopened scalar 1.4594596172388776 is rejected by the
+    exact candidate validator below and requires a separately captured profile.
+    """
+    _require(_strict_graph_equal(runtime_profile, PROFILE_1140_BUILD481),
+             'Curve profile is pinned to Jianying 11.4.0 Build 481')
+    _require(isinstance(base_timeline, dict), 'Base timeline must be an object')
+    _, _, old_speed_id = _validate_base(base_timeline, source_fps, source_sha256)
+    used = _base_identifiers(base_timeline)
+    new_speed_id = str(uuid.uuid4()).upper()
+    while new_speed_id in used:
+        new_speed_id = str(uuid.uuid4()).upper()
+    return _candidate_with_speed_id(base_timeline, old_speed_id, new_speed_id)

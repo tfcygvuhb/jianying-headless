@@ -98,15 +98,21 @@ private func editorWindow(_ app: NSRunningApplication) throws -> (AXUIElement, U
         throw CaptureError(code: "editor-not-frontmost", detail: "the unique regular editor PID is not the frontmost application")
     }
     let windows = axWindows(app)
-    guard windows.count == 1,
-          let axWindow = windows.first,
-          stringAttribute(axWindow, kAXRoleAttribute as String) == kAXWindowRole as String,
+    var markerWindows: [(AXUIElement, Int)] = []
+    for window in windows {
+        guard let markerCount = editorMarkerCount(in: window) else {
+            throw CaptureError(code: "editor-marker-tree-unreadable", detail: "an AXWindow subtree was unreadable or exceeded the marker scan limits")
+        }
+        if markerCount > 0 { markerWindows.append((window, markerCount)) }
+    }
+    guard markerWindows.count == 1, let selected = markerWindows.first, selected.1 == 1 else {
+        throw CaptureError(code: "editor-marker-missing-or-ambiguous", detail: "exactly one AXWindow must contain exactly one MainTimeLineRoot; found \(markerWindows.count) marker-bearing windows")
+    }
+    let axWindow = selected.0
+    guard stringAttribute(axWindow, kAXRoleAttribute as String) == kAXWindowRole as String,
           stringAttribute(axWindow, kAXTitleAttribute as String) == expectedWindowTitle,
           let axRect = axFrame(axWindow) else {
-        throw CaptureError(code: "ax-window-not-unique", detail: "expected one titled AXWindow with a readable frame; found \(windows.count)")
-    }
-    guard hasUniqueEditorMarker(app) else {
-        throw CaptureError(code: "editor-marker-missing-or-ambiguous", detail: "MainTimeLineRoot must occur exactly once in the current AX tree")
+        throw CaptureError(code: "ax-window-not-unique", detail: "the unique MainTimeLineRoot AXWindow must have the expected title and a readable frame")
     }
 
     let rawList = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
@@ -134,24 +140,35 @@ private func framesMatch(_ a: CGRect, _ b: CGRect) -> Bool {
         abs(a.width - b.width) <= tolerance && abs(a.height - b.height) <= tolerance
 }
 
-private func hasUniqueEditorMarker(_ app: NSRunningApplication) -> Bool {
-    let root = AXUIElementCreateApplication(app.processIdentifier)
+private func editorMarkerCount(in root: AXUIElement) -> Int? {
     var queue: [(AXUIElement, Int)] = [(root, 0)]
+    var cursor = 0
     var count = 0
-    var visited = 0
-    while !queue.isEmpty {
-        let (element, depth) = queue.removeFirst()
-        visited += 1
-        if visited > 5000 { return false }
-        if stringAttribute(element, kAXDescriptionAttribute as String) == "MainTimeLineRoot" { count += 1 }
-        if count > 1 { return false }
-        if depth < 24,
-           let raw = attribute(element, kAXChildrenAttribute as String),
-           let children = raw as? [AXUIElement] {
-            queue.append(contentsOf: children.map { ($0, depth + 1) })
+    while cursor < queue.count {
+        let (element, depth) = queue[cursor]
+        cursor += 1
+        if cursor > 5000 { return nil }
+        var rawDescription: CFTypeRef?
+        let descriptionStatus = AXUIElementCopyAttributeValue(element, kAXDescriptionAttribute as CFString, &rawDescription)
+        if descriptionStatus == .success {
+            guard let description = rawDescription as? String else { return nil }
+            if description == "MainTimeLineRoot" { count += 1 }
+        } else if descriptionStatus != .noValue && descriptionStatus != .attributeUnsupported {
+            return nil
         }
+        if count > 1 { return count }
+
+        var rawChildren: CFTypeRef?
+        let childStatus = AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &rawChildren)
+        if childStatus == .noValue { continue }
+        guard childStatus == .success, let children = rawChildren as? [AXUIElement] else { return nil }
+        if depth >= 24 {
+            if !children.isEmpty { return nil }
+            continue
+        }
+        queue.append(contentsOf: children.map { ($0, depth + 1) })
     }
-    return count == 1
+    return count
 }
 
 private func assertUnlockedConsoleSession() throws {
@@ -315,9 +332,11 @@ private func capture(outputDirectory: URL) -> Int32 {
         }
         // Recheck once more after Vision before creating the accepted envelope.
         let finalApp = try regularEditor()
-        guard finalApp.processIdentifier == initialApp.processIdentifier,
-              isFrontmost(finalApp),
-              try editorWindow(finalApp).1 == initialWindowID else {
+        guard finalApp.processIdentifier == initialApp.processIdentifier else {
+            throw CaptureError(code: "binding-changed-before-commit", detail: "editor PID changed before envelope write")
+        }
+        let finalBinding = try editorWindow(finalApp)
+        guard finalBinding.1 == initialWindowID && framesMatch(finalBinding.2, initialFrame) else {
             throw CaptureError(code: "binding-changed-before-commit", detail: "PID/frontmost editor window binding changed before envelope write")
         }
         let imageSHA = try sha256(imageURL)

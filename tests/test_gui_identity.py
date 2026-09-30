@@ -71,6 +71,15 @@ class EditorIdentityTests(unittest.TestCase):
         self.assertEqual(result['status'], 'rejected')
         self.assertIn('screenshot-hash-mismatch', {r['code'] for r in result['reasons']})
 
+    def test_wrong_window_title_or_missing_binding_is_rejected(self):
+        payload = json.loads(self.ocr.read_text())
+        payload['windowTitle'] = '首页'
+        self.ocr.write_text(json.dumps(payload))
+        self.assertIn('capture-binding-invalid', {r['code'] for r in self.check()['reasons']})
+        payload.pop('windowTitle')
+        self.ocr.write_text(json.dumps(payload))
+        self.assertIn('capture-binding-invalid', {r['code'] for r in self.check()['reasons']})
+
     def wrapped_name(self):
         self.items = [
             {'text': '草稿名称：', 'confidence': 1.0, 'x': .70, 'y': .80,

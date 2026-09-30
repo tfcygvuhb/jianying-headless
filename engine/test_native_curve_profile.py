@@ -2,6 +2,7 @@
 from copy import deepcopy
 import unittest
 import uuid
+from unittest.mock import patch
 
 import native_curve_profile as curve
 from runtime_profiles import PROFILE_1140_BUILD481
@@ -146,6 +147,111 @@ class Build481CurveProfileTests(unittest.TestCase):
             mutate(base)
             with self.subTest(message=message), self.assertRaisesRegex(ValueError, message):
                 self.build(base)
+
+    def test_builder_and_validator_reject_base_numeric_type_coercions(self):
+        mutations = (
+            ('color space bool', lambda x: x.__setitem__('color_space', False)),
+            ('HDR mode bool', lambda x: x['tracks'][0]['segments'][0]['hdr_settings'].__setitem__('mode', True)),
+            ('canvas width float', lambda x: x['canvas_config'].__setitem__('width', 1280.0)),
+            ('platform app id bool', lambda x: x['platform'].__setitem__('app_id', True)),
+            ('video check flag float', lambda x: x['materials']['videos'][0].__setitem__('check_flag', 62978047.0)),
+        )
+        for name, mutate in mutations:
+            valid_base = base_timeline()
+            candidate = self.build(valid_base)
+            malformed_base = deepcopy(valid_base)
+            mutate(malformed_base)
+            with self.subTest(name=name, entrypoint='builder'), self.assertRaises(ValueError):
+                self.build(malformed_base)
+            with self.subTest(name=name, entrypoint='validator'), self.assertRaises(ValueError):
+                curve.validate_curve_candidate(
+                    malformed_base, candidate, runtime_profile=PROFILE_1140_BUILD481,
+                    source_fps=30, source_sha256=curve.SOURCE_SHA256)
+
+    def test_validator_accepts_builder_candidate_without_calling_builder(self):
+        base = base_timeline()
+        before = deepcopy(base)
+        candidate = self.build(base)
+        with patch.object(curve, 'build_curve_profile', side_effect=AssertionError('random builder called')):
+            result = curve.validate_curve_candidate(
+                base, candidate, runtime_profile=PROFILE_1140_BUILD481,
+                source_fps=30, source_sha256=curve.SOURCE_SHA256)
+        self.assertEqual(result['profile_id'], 'b481-custom-five-point-v1')
+        self.assertEqual(result['speed_material_id'], candidate['materials']['speeds'][0]['id'])
+        self.assertEqual(result['source_duration_us'], curve.SOURCE_DURATION_US)
+        self.assertEqual(result['target_duration_us'], curve.TARGET_DURATION_US)
+        self.assertTrue(curve._strict_graph_equal(base, before))
+
+    def test_validator_rejects_scalar_cold_reopen_and_python_numeric_type_coercions(self):
+        mutations = (
+            ('speed material bool mode',
+             lambda x: x['materials']['speeds'][0].__setitem__('mode', True)),
+            ('speed material float mode',
+             lambda x: x['materials']['speeds'][0].__setitem__('mode', 1.0)),
+            ('speed material bool scalar',
+             lambda x: x['materials']['speeds'][0].__setitem__('speed', True)),
+            ('speed material int scalar',
+             lambda x: x['materials']['speeds'][0].__setitem__('speed', 1)),
+            ('speed material float scalar',
+             lambda x: x['materials']['speeds'][0].__setitem__('speed', 1.0)),
+            ('segment bool scalar',
+             lambda x: x['tracks'][0]['segments'][0].__setitem__('speed', True)),
+            ('segment int scalar',
+             lambda x: x['tracks'][0]['segments'][0].__setitem__('speed', 1)),
+            ('segment float scalar',
+             lambda x: x['tracks'][0]['segments'][0].__setitem__('speed', 1.0)),
+            ('cold reopen scalar',
+             lambda x: x['materials']['speeds'][0].__setitem__('speed', 1.4594596172388776)),
+            ('cold reopen segment scalar',
+             lambda x: x['tracks'][0]['segments'][0].__setitem__('speed', 1.4594596172388776)),
+            ('bool point coordinate',
+             lambda x: x['materials']['speeds'][0]['curve_speed']['speed_points'][1].__setitem__('y', True)),
+        )
+        for name, mutate in mutations:
+            base = base_timeline()
+            before = deepcopy(base)
+            candidate = self.build(base)
+            mutate(candidate)
+            with self.subTest(name=name), self.assertRaisesRegex(ValueError, 'differs from the exact'):
+                curve.validate_curve_candidate(
+                    base, candidate, runtime_profile=PROFILE_1140_BUILD481,
+                    source_fps=30, source_sha256=curve.SOURCE_SHA256)
+            self.assertTrue(curve._strict_graph_equal(base, before))
+
+    def test_validator_rejects_graph_identity_reference_duration_and_point_changes(self):
+        mutations = (
+            ('speed material id', lambda x: x['materials']['speeds'][0].__setitem__('id', uid())),
+            ('speed ref', lambda x: x['tracks'][0]['segments'][0]['extra_material_refs'].__setitem__(0, uid())),
+            ('timeline duration', lambda x: x.__setitem__('duration', curve.TARGET_DURATION_US + 1)),
+            ('segment duration', lambda x: x['tracks'][0]['segments'][0]['target_timerange'].__setitem__('duration', curve.TARGET_DURATION_US + 1)),
+            ('curve point', lambda x: x['materials']['speeds'][0]['curve_speed']['speed_points'][2].__setitem__('y', 4.0)),
+        )
+        for name, mutate in mutations:
+            base = base_timeline()
+            candidate = self.build(base)
+            mutate(candidate)
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                curve.validate_curve_candidate(
+                    base, candidate, runtime_profile=PROFILE_1140_BUILD481,
+                    source_fps=30, source_sha256=curve.SOURCE_SHA256)
+
+    def test_validator_rejects_reused_or_noncanonical_speed_id(self):
+        for replacement_kind in ('malformed', 'lowercase', 'reused'):
+            base = base_timeline()
+            candidate = self.build(base)
+            old_id = candidate['materials']['speeds'][0]['id']
+            replacement = {
+                'malformed': 'not-a-uuid',
+                'lowercase': str(uuid.uuid4()),
+                'reused': base['id'],
+            }[replacement_kind]
+            candidate['materials']['speeds'][0]['id'] = replacement
+            refs = candidate['tracks'][0]['segments'][0]['extra_material_refs']
+            refs[refs.index(old_id)] = replacement
+            with self.subTest(replacement_kind=replacement_kind), self.assertRaises(ValueError):
+                curve.validate_curve_candidate(
+                    base, candidate, runtime_profile=PROFILE_1140_BUILD481,
+                    source_fps=30, source_sha256=curve.SOURCE_SHA256)
 
 
 if __name__ == '__main__':
