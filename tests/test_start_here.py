@@ -71,8 +71,16 @@ class FirstDraftTests(unittest.TestCase):
         calls = []
         def success(command, timeout=60):
             calls.append(command)
-            return subprocess.CompletedProcess(command, 0,
-                json.dumps(self.media) if command[0] == 'ffprobe' else '{}', '')
+            if command[0] == 'ffprobe':
+                output = json.dumps(self.media)
+            elif command[-1:] == ['doctor']:
+                output = json.dumps({'status': 'ok', 'runtime_profile': 'jy14-headless-macos-11.5.0',
+                    'capabilities': {'draft_create': True, 'publish': True, 'verify': True,
+                                     'existing_edit': True, 'native_export': True,
+                                     'native_resources': True}})
+            else:
+                output = '{}'
+            return subprocess.CompletedProcess(command, 0, output, '')
         with patch.object(start, 'ROOT', self.folder), patch.object(start, 'run', side_effect=success), contextlib.redirect_stdout(io.StringIO()):
             start.build(str(self.source))
             start.build(str(self.source))
@@ -86,6 +94,27 @@ class FirstDraftTests(unittest.TestCase):
             self.assertEqual(start.shlex.split(result['commands']['publish'])[2], 'publish')
             self.assertIn(result['commands']['export'], (job / 'next-steps.md').read_text())
         self.assertEqual(self.source.read_bytes(), b'unit test bytes')
+
+    def test_draft_only_profile_does_not_emit_export_command(self):
+        def success(command, timeout=60):
+            if command[0] == 'ffprobe':
+                output = json.dumps(self.media)
+            elif command[-1:] == ['doctor']:
+                output = json.dumps({'status': 'ok', 'runtime_profile': 'jy14-headless-macos-11.4.0-build481',
+                    'capabilities': {'draft_create': True, 'publish': False, 'verify': True,
+                                     'existing_edit': False, 'native_export': False,
+                                     'native_resources': False}})
+            else:
+                output = '{}'
+            return subprocess.CompletedProcess(command, 0, output, '')
+        with patch.object(start, 'ROOT', self.folder), patch.object(start, 'run', side_effect=success), contextlib.redirect_stdout(io.StringIO()):
+            start.build(str(self.source))
+        job = next((self.folder / 'work').iterdir())
+        report = json.loads((job / 'next-steps.json').read_text())
+        self.assertNotIn('publish', report['commands'])
+        self.assertNotIn('verify', report['commands'])
+        self.assertNotIn('export', report['commands'])
+        self.assertNotIn('export', (job / 'next-steps.md').read_text())
 
 
 if __name__ == '__main__':

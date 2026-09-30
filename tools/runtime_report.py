@@ -11,7 +11,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'engine'))
-from runtime_profiles import PROFILES, validate_identity
+from runtime_profiles import RUNTIME_IDENTITIES, resolve_identity
 
 
 def report(app):
@@ -32,16 +32,13 @@ def report(app):
             for block in iter(lambda: stream.read(1024 * 1024), b''):
                 sha.update(block)
         result['library_sha256'] = sha.hexdigest()
-        result['expected_library_sha256'] = PROFILES.get(result['app_version'])
+        result['matching_profile_candidates'] = [profile['profile_id'] for profile in RUNTIME_IDENTITIES.values()
+                                                if profile['app_version'] == result['app_version']
+                                                and profile['app_build'] == result['app_build']]
     except (OSError, ValueError) as error:
         result.update(status='unavailable', reason=type(error).__name__,
                       next_step='Check the official Jianying installation; no personal paths are included.')
         return result
-    try:
-        validate_identity(info, result['library_sha256'])
-        result['identity_matched'] = True
-    except ValueError:
-        result['identity_matched'] = False
     try:
         env = {'PATH': '/usr/bin:/bin:/usr/sbin:/sbin', 'LC_ALL': 'C'}
         verified = subprocess.run(['/usr/bin/codesign', '--verify', '--deep', '--strict', str(app)],
@@ -55,6 +52,16 @@ def report(app):
                                                  and team == ['X2JNK7LY8J'])
     except (OSError, subprocess.SubprocessError):
         result['official_signature_verified'] = False
+    try:
+        profile = resolve_identity(info, result['library_sha256'], result['team_identifier'])
+        result['identity_matched'] = True
+        result.update(profile_id=profile['profile_id'], runtime_profile=profile['profile_id'],
+                      expected_library_sha256=profile['library_sha256'],
+                      codec_name=profile['codec_name'], expected_codec_sha256=profile['codec_sha256'],
+                      capabilities=profile['capabilities'])
+    except (KeyError, ValueError):
+        result['identity_matched'] = False
+        result['expected_library_sha256'] = None
     result['status'] = ('identity-verified' if result['identity_matched']
                         and result['official_signature_verified'] else 'review-required')
     result['next_step'] = ('Run doctor and the documented first-draft workflow.'

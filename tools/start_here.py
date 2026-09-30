@@ -22,7 +22,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'engine'))
 sys.path.insert(0, str(ROOT / 'tools'))
-from runtime_profiles import validate_identity
+from runtime_profiles import resolve_identity
 from build_toolchain import select_toolchain
 
 APP = Path('/Applications/VideoFusion-macOS.app')
@@ -57,23 +57,39 @@ def check():
     for tool in ('ffmpeg', 'ffprobe'):
         add('PASS' if shutil.which(tool) else 'FAIL', tool,
             '已找到' if shutil.which(tool) else '未找到；安装后重新打开终端')
+    toolchain = None
+    toolchain_error = None
     if supported:
         try:
             manifest = json.loads((ROOT / 'bridge/SOURCE_MANIFEST.json').read_text())
             _, toolchain = select_toolchain(manifest['reproduction_environment'])
-            add('PASS', '已验工具链', toolchain['compiler'] + ' / SDK ' + toolchain['sdk_version']
-                + ' / linker ' + toolchain['linker'] + '；最终仍须校验编译产物')
         except (OSError, ValueError, KeyError, subprocess.SubprocessError) as error:
-            # An already-verified codec does not need recompilation.
-            add('WARN' if (ROOT / 'bridge/jy14_codec_hardened_11_4').is_file() else 'FAIL',
-                '编译工具', str(error))
+            toolchain_error = error
     try:
         info = plistlib.loads((APP / 'Contents/Info.plist').read_bytes())
-        version = validate_identity(info, digest(APP / 'Contents/Frameworks/libvideoeditor.dylib'))
-        add('PASS', '剪映身份', version + '，程序库指纹匹配；完整签名由桥接构建和正式写入检查')
+        signature = run(['/usr/bin/codesign', '-dv', '--verbose=4', str(APP)])
+        teams = [line.split('=', 1)[1] for line in signature.stderr.splitlines()
+                 if line.startswith('TeamIdentifier=')]
+        if signature.returncode or len(teams) != 1:
+            raise ValueError('剪映签名身份读取失败')
+        profile = resolve_identity(info, digest(APP / 'Contents/Frameworks/libvideoeditor.dylib'),
+                                   teams[0])
+        enabled = ', '.join(name for name, value in profile['capabilities'].items() if value)
+        add('PASS', '剪映身份', profile['profile_id'] + '，程序库指纹匹配；能力：' + enabled)
+        codec_name = profile['codec_name']
     except (OSError, ValueError, KeyError) as error:
         add('FAIL', '剪映身份', str(error) + '；需要匹配的官方安装，不能修改哈希绕过')
-    codec = ROOT / 'bridge/jy14_codec_hardened_11_4'
+        codec_name = None
+    if supported:
+        if toolchain is not None:
+            add('PASS', '已验工具链', toolchain['compiler'] + ' / SDK ' + toolchain['sdk_version']
+                + ' / linker ' + toolchain['linker'] + '；最终仍须校验编译产物')
+        else:
+            # Only the exact codec selected by the resolved runtime can make
+            # recompilation optional.  A codec for another profile is irrelevant.
+            reviewed_codec_exists = bool(codec_name and (ROOT / 'bridge' / codec_name).is_file())
+            add('WARN' if reviewed_codec_exists else 'FAIL', '编译工具', str(toolchain_error))
+    codec = ROOT / 'bridge' / codec_name if codec_name else ROOT / 'bridge/jy14_codec_hardened_11_4'
     if not codec.exists():
         add('WARN', '桥接组件', '首次下载尚未构建；下一步运行 python3 tools/build_native_codec.py')
     else:
@@ -142,6 +158,13 @@ def build(raw):
     doctor = run([sys.executable, str(ENTRY), 'doctor'])
     if doctor.returncode:
         raise ValueError('doctor 未通过。先运行 check 和桥接构建。\n' + doctor.stderr)
+    try:
+        runtime = json.loads(doctor.stdout)
+        capabilities = runtime['capabilities']
+        if capabilities.get('draft_create') is not True or capabilities.get('verify') is not True:
+            raise ValueError('当前 runtime profile 未启用 draft_create/verify')
+    except (TypeError, ValueError, KeyError, json.JSONDecodeError) as error:
+        raise ValueError('doctor 输出缺少精确 capability matrix；停止生成草稿') from error
     if raw is None:
         if not sys.stdin.isatty():
             raise ValueError('非交互运行需提供 --source 视频路径。')
@@ -168,27 +191,40 @@ def build(raw):
             raise ValueError('未完成 ' + command + '，日志保留在 ' + str(job) + '\n' + result.stderr)
     if digest(source) != before:
         raise ValueError('源视频发生变化；停止交付，记录保留在 ' + str(job))
-    commands = {
-        'publish': [sys.executable, str(ENTRY), 'publish', '--build', str(job / 'build'), '--audit', str(job / 'publish-audit')],
-        'verify': [sys.executable, str(ENTRY), 'verify', '--build', str(job / 'build'), '--report', str(job / 'after-native-save.json')],
-        'export': [sys.executable, str(ENTRY), 'export', '--build', str(job / 'build'), '--out', str(job / 'export')],
-    }
+    commands = {}
+    if capabilities.get('publish') is True:
+        commands['publish'] = [sys.executable, str(ENTRY), 'publish', '--build', str(job / 'build'),
+                               '--audit', str(job / 'publish-audit')]
+        commands['verify'] = [sys.executable, str(ENTRY), 'verify', '--build', str(job / 'build'),
+                              '--report', str(job / 'after-native-save.json')]
+    if capabilities.get('native_export') is True:
+        commands['export'] = [sys.executable, str(ENTRY), 'export', '--build', str(job / 'build'), '--out', str(job / 'export')]
     report = {'status': 'build-verified', 'name': plan['name'], 'build': str(job / 'build'),
               'source_unchanged': True, 'draft_registered': False, 'video_exported': False,
               'commands': {key: shlex.join(value) for key, value in commands.items()}}
     (job / 'next-steps.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
-    labels = {'publish': '保存工作并完全退出剪映后，登记到本机首页',
-              'verify': '打开播放、保存退出、冷重开检查，再次退出后回读',
-              'export': '可选：导出最初构建的快照，不包含后来手工修改'}
+    labels = {}
+    if 'publish' in commands:
+        labels['publish'] = '保存工作并完全退出剪映后，登记到本机首页'
+        labels['verify'] = '已登记草稿在打开播放、保存退出、冷重开检查后，再次退出回读'
+    if 'export' in commands:
+        labels['export'] = '可选：导出最初构建的快照，不包含后来手工修改'
     notes = '# ' + plan['name'] + '\n'
     for key, label in labels.items():
         notes += '\n## ' + label + '\n\n```bash\n' + report['commands'][key] + '\n```\n'
     (job / 'next-steps.md').write_text(notes)
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    print('\n尚未写入剪映首页。保存工作并完全退出剪映后，再复制执行下面这一行：\n' +
-          report['commands']['publish'])
-    print('\n打开、播放、保存、退出并冷重开检查后，再次退出剪映，执行：\n' + report['commands']['verify'])
-    print('\n可选：需要 MP4 时导出最初快照（不含后续手工修改）：\n' + report['commands']['export'])
+    if 'publish' in report['commands']:
+        print('\n尚未写入剪映首页。保存工作并完全退出剪映后，再复制执行下面这一行：\n' +
+              report['commands']['publish'])
+        print('\n打开、播放、保存、退出并冷重开检查后，再次退出剪映，执行：\n' +
+              report['commands']['verify'])
+    else:
+        print('\n当前 runtime profile 的 publish 已禁用；离线 build 已保留，不会写入剪映首页。')
+    if 'export' in report['commands']:
+        print('\n可选：需要 MP4 时导出最初快照（不含后续手工修改）：\n' + report['commands']['export'])
+    else:
+        print('\n当前 runtime profile 的 native_export 已禁用；不会生成导出命令。')
     print('\n以上可复制命令也保存在：' + str(job / 'next-steps.md'))
     return 0
 

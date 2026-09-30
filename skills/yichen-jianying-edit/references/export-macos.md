@@ -4,9 +4,13 @@
 
 ## 输入、边界与命令
 
-入口使用本机剪映 11.5.0（主版本）或 11.4.2（兼容版本）的独立原生 `ExportService` 配置和 MP4 writer，不调用外部 FFmpeg 合成、烧字幕或重新封装。FFmpeg 只用于完整解码检查、抽帧与音频质检。
-构建快照的运行版本必须与当前剪映一致；换版本后先在当前版本重新构建或编辑独立副本，不直接混用旧快照。
+入口使用与本机剪映精确身份匹配的独立原生 `ExportService` 配置和 MP4 writer，不调用外部 FFmpeg 合成、烧字幕或重新封装。FFmpeg 只用于完整解码检查、抽帧与音频质检。
+11.5.0 为主版本、11.4.2 为兼容版本；精确 `11.4.0 Build 481` 现已开放基础导出；正式速度门禁仅允许 1×。基础范围为本地视频、文字、本地音频，隔离 helper 每类完成三次，仓库与已安装 Skill 正式入口每类各完成一次复验。历史 1.5×、0.75× 变速样本各通过三次原生导出与抽样时间码检查，但未满足完整逐帧验收；组合工程通过 GUI 保存和冷重开。已安装 Skill 正式入口的 speed-timecode 样本输出 4 秒/120 帧 MP4，完整解码通过。Monaco TTF、固定 SHA `525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9` 的 Arial TTF 与固定 SHA `7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72` 的 STIXGeneralItalic OTF、线性关键帧通道、六种几何蒙版、固定叠化 `transition/dissolve` 和轻微抖动 `effect/light-shake` 也分别通过 Build 481 单项验收；叠化与轻微抖动正式 Skill 导出分别为 168 和 90 帧标准 MP4，完整解码通过。原始 STIXGeneral Regular OTF 的 GUI 保存会丢失字体绑定；显式生成的固定 SHA 别名已通过验收，其他字体未放行。`native_resources` 总门禁仍关闭，仅精确子集通过独立门禁。原 Skill 的计划格式和正式导出尚不支持曲线变速；Build 481 官方 GUI 的一条自定义曲线样本已完成保存、冷重开和 GUI 导出，生产能力仍关闭。构建快照的运行版本必须与当前剪映一致；换版本后先在当前版本重新构建或编辑独立副本，不直接混用旧快照。
 以下历史数据主要来自 11.4.2；11.5.0 分项证据见核心项目 `docs/VERIFICATION.md`。高清黑白滤镜与橙色描边花字已移除，不再支持构建或导出。
+Build 481 后续又对 0.1×、0.5×、8× 完成 GUI 冷重开、时间码和正式 Skill 各 90/90 帧导出，
+随后逐帧复核发现 8× 源映射错误、0.1×/0.5× 末帧越界；2× 另有 89/90 帧及源映射错误。
+当前仅放行 1×，所有非 1× 倍率失败关闭。详见核心项目
+`docs/BUILD481-SPEED-20260925.md`。
 
 输入必须是 `build` 或 `edit build` 产生且可通过逐文件验证的独立快照，不是正在编辑的 live 草稿。之后在剪映中手工修改的内容不会自动进入旧快照；用户要导出最新手改内容时，不能悄悄改为导出旧 build。
 
@@ -21,6 +25,12 @@ python3 SKILL/scripts/headless_draft.py export --build ABSOLUTE_BUILD --out ABSO
 引擎在新的隔离进程中运行：禁止网络与账号数据读取，只能读取本次复制的用户素材，不能写入任务目录以外。不会附加正在运行的剪映进程，也不操作界面或修改 live 草稿；无需退出剪映即可导出已冻结的 build。
 
 ## 当前能力
+
+Build 481 的 capability 允许基础导出，速度精确门禁当前仅允许 1×；单项门禁只允许固定 SHA 的 Monaco、Arial、STIXGeneralItalic 与显式生成的 STIXGeneral Regular 别名字体、已声明的线性关键帧通道、六种固定几何蒙版、固定 `transition/dissolve` 和 `effect/light-shake`。转场/效果的完整资源 identity 必须匹配，`native_resources` 总门禁仍关闭。原始 STIXGeneral Regular OTF、其他字体/蒙版/转场/特效和复合片段仍按各自规则拒绝。原 Skill 的计划格式和正式导出尚不支持曲线变速；Build 481 官方 GUI 的一条自定义曲线样本已完成保存、冷重开和 GUI 导出，生产能力仍关闭。以下其他版本的历史能力描述不能直接视为 Build 481 放行依据。
+别名文件须由核心项目 `tools/make_stix_regular_alias.py` 对固定 SHA 的系统 Regular OTF
+显式生成，放在本次 `work/` 并作为文字 `font_path`；精确输出 SHA 为
+`154e149bfdd2daf1f9560b8103bc3484c327a4969710339ea9e8b5a1247a0717`。
+原始 Regular SHA 仍被拒绝，详见核心项目 `docs/BUILD481-FONT-GUI-20260924.md`。
 
 - 已通过实际原生渲染与画面检查：本地视频、分段、混合速度、旋转画中画、中文标题/字幕、BGM/短音效；线性画面关键帧；已采集的叠化转场。PNG/GIF 的编辑器验收与导出验收分别记录，不据前者泛化后者。
 - 叠化原声已与编辑器导出同一测试样本对照：两个同相 440 Hz 原声在 0.4 秒叠化区间，界面导出约 +6.019 dB、无界面约 +6.030 dB，仅差约 0.011 dB，与两路直接相加一致。它不是无界面链路独有问题，但无削波不代表响度合适；含叠化时仍返回 `native-dissolve-audio-overlap`，须检查真实音频，不能静默改音量或将这次测试泛化为所有音频都正确。

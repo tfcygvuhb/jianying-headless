@@ -1,6 +1,7 @@
 """Retained isolated fixtures; never modify real projects or the installed app."""
 from copy import deepcopy
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -88,6 +89,145 @@ class DefaultSpeedTests(unittest.TestCase):
                 ({'volume': 1}, {}, '/materials/speeds/id')]:
             with self.subTest(path=path), self.assertRaises(ValueError):
                 native_edit.preserved(expected, actual, path)
+
+
+class PreservedIdentitySetTests(unittest.TestCase):
+    def test_native_readback_rejects_added_removed_and_duplicate_nodes(self):
+        expected = [{'id': 'one', 'value': 1}, {'id': 'two', 'value': 2}]
+        native_edit.preserved(expected, deepcopy(expected), '/materials')
+        for actual in (
+                [{'id': 'one', 'value': 1}],
+                expected + [{'id': 'three', 'value': 3}],
+                [{'id': 'one', 'value': 1}, {'id': 'one', 'value': 1}],
+                [{'id': 'one', 'value': 1}, {'value': 2}]):
+            with self.subTest(actual=actual), self.assertRaises(ValueError):
+                native_edit.preserved(expected, actual, '/materials')
+
+
+class EditProjectIdentityTests(unittest.TestCase):
+    def test_project_id_main_timeline_and_membership_are_bound_to_edit_build(self):
+        record = {'project_id': 'new-project', 'timeline_id': 'source-timeline'}
+        timeline = {'id': 'source-timeline'}
+        good = {'id': 'new-project', 'main_timeline_id': 'source-timeline',
+                'timelines': [{'id': 'source-timeline'}]}
+        with tempfile.TemporaryDirectory() as temporary:
+            folder = Path(temporary)
+            (folder / 'Timelines').mkdir()
+            path = folder / 'Timelines/project.json'
+            path.write_text(json.dumps(good), encoding='utf-8')
+            native_edit.verify_project_identity(folder, record, timeline)
+            for changed in (
+                    {'id': 'source-project'},
+                    {'main_timeline_id': 'other-timeline'},
+                    {'timelines': [{'id': 'other-timeline'}]},
+                    {'timelines': [{'id': 'source-timeline'}, {'id': 'other-timeline'}]}):
+                with self.subTest(changed=changed):
+                    path.write_text(json.dumps({**good, **changed}), encoding='utf-8')
+                    with self.assertRaises(ValueError):
+                        native_edit.verify_project_identity(folder, record, timeline)
+
+    def test_evidence_report_change_does_not_invalidate_binary_identity(self):
+        recorded = {'runtime_hashes_verified': True, 'runtime_profile': 'build481',
+                    'libvideoeditor_sha256': 'lib-hash', 'codec_sha256': 'codec-hash',
+                    'capabilities': {'existing_edit': True, 'existing_edit_publish': False},
+                    'resource_evidence': {'adjustment_layers': {'offline_build': 'partial'}}}
+        current = deepcopy(recorded)
+        current['resource_evidence']['adjustment_layers']['offline_build'] = 'unverified'
+        with patch.object(native_edit.j.nd, 'validate_runtime', return_value=current):
+            self.assertTrue(native_edit.verify_recorded_runtime(
+                {'runtime': recorded, 'runtime_profile': 'build481'}))
+            changed = deepcopy(current)
+            changed['codec_sha256'] = 'different-codec'
+        with patch.object(native_edit.j.nd, 'validate_runtime', return_value=changed):
+            with self.assertRaisesRegex(ValueError, 'fingerprint changed'):
+                native_edit.verify_recorded_runtime(
+                    {'runtime': recorded, 'runtime_profile': 'build481'})
+        changed = deepcopy(current)
+        changed['capabilities']['existing_edit_publish'] = True
+        with patch.object(native_edit.j.nd, 'validate_runtime', return_value=changed):
+            with self.assertRaisesRegex(ValueError, 'fingerprint changed'):
+                native_edit.verify_recorded_runtime(
+                    {'runtime': recorded, 'runtime_profile': 'build481'})
+
+
+class EditCandidateTests(unittest.TestCase):
+    def test_precommit_checks_placed_draft_identity_and_independent_mirrors(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            out, target, source = root / 'build', root / 'copy', root / 'source'
+            source.mkdir()
+            (source / 'media').write_bytes(b'fixed-source')
+            timeline = {'id': 'timeline'}
+            j.write(out / 'expected-timeline.json', timeline)
+            j.write(target / 'draft_meta_info.json',
+                    {'draft_id': 'copy-id', 'draft_fold_path': str(target)})
+            j.write(target / 'Timelines/project.json',
+                    {'id': 'project', 'main_timeline_id': 'timeline',
+                     'timelines': [{'id': 'timeline'}]})
+            for path in native_edit.mirrors(target, 'timeline'):
+                j.write(path, timeline)
+            record = {'target': str(target), 'draft_id': 'copy-id',
+                      'timeline_id': 'timeline', 'project_id': 'project',
+                      'runtime_profile': 'jy14-headless-macos-11.4.0-build481',
+                      'resources': {}, 'media_dependencies': [], 'source': str(source),
+                      'source_files': j.files_manifest(source), 'files': j.files_manifest(target)}
+            index = {'all_draft_store': [{'draft_id': 'copy-id', 'draft_fold_path': str(target)}]}
+            helper = SimpleNamespace(_decrypt_metadata_in_memory=j.read_json)
+            with patch.object(native_edit, 'verify_build', return_value=record), patch.object(
+                    native_edit.j.nd, 'helper', return_value=helper):
+                self.assertEqual(native_edit.verify_candidate(out, target, index)['index_written'], False)
+                external = root / 'external.mp4'
+                external.write_bytes(b'outside-copy')
+                record['media_dependencies'] = [{'path': str(external),
+                                                 'sha256': j.nd.digest(external)}]
+                with self.assertRaisesRegex(ValueError, 'media inside the copied draft'):
+                    native_edit.verify_candidate(out, target, index)
+                internal = target / 'Resources' / 'local.mp4'
+                internal.parent.mkdir()
+                internal.write_bytes(external.read_bytes())
+                record['media_dependencies'] = [{'path': str(internal),
+                                                 'sha256': j.nd.digest(internal)}]
+                record['files'] = j.files_manifest(target)
+                self.assertEqual(native_edit.verify_candidate(out, target, index)['index_written'], False)
+                wrong = {'all_draft_store': [{'draft_id': 'copy-id', 'draft_fold_path': '/other'}]}
+                with self.assertRaisesRegex(ValueError, 'registration identity'):
+                    native_edit.verify_candidate(out, target, wrong)
+                (target / 'draft_meta_info.json').write_text(json.dumps(
+                    {'draft_id': 'source-id', 'draft_fold_path': str(target)}), encoding='utf-8')
+                record['files'] = j.files_manifest(target)
+                with self.assertRaisesRegex(ValueError, 'draft identity'):
+                    native_edit.verify_candidate(out, target, index)
+                (target / 'draft_meta_info.json').write_text(json.dumps(
+                    {'draft_id': 'copy-id', 'draft_fold_path': str(target)}), encoding='utf-8')
+                first, second = native_edit.mirrors(target, 'timeline')[:2]
+                second.unlink()
+                os.link(first, second)
+                record['files'] = j.files_manifest(target)
+                with self.assertRaisesRegex(ValueError, 'mirrors disagree'):
+                    native_edit.verify_candidate(out, target, index)
+
+
+class EditNewFieldTests(unittest.TestCase):
+    def test_build481_rejects_new_nonempty_fields_inside_id_nodes(self):
+        expected = {'materials': {'videos': [{'id': 'video-a', 'type': 'video'}]},
+                    'tracks': [{'id': 'track-a', 'segments': [{'id': 'segment-a'}]}]}
+        actual = deepcopy(expected)
+        actual['materials']['videos'][0]['is_set_beauty_mode'] = True
+        with self.assertRaisesRegex(ValueError, 'is_set_beauty_mode'):
+            native_edit.reject_new_nonempty_fields(expected, actual)
+        del actual['materials']['videos'][0]['is_set_beauty_mode']
+        actual['tracks'][0]['segments'][0]['unreviewed_speed_mode'] = 'curve'
+        with self.assertRaisesRegex(ValueError, 'unreviewed_speed_mode'):
+            native_edit.reject_new_nonempty_fields(expected, actual)
+        del actual['tracks'][0]['segments'][0]['unreviewed_speed_mode']
+        actual['tracks'][0]['segments'][0]['empty_native_default'] = None
+        native_edit.reject_new_nonempty_fields(expected, actual)
+        with self.assertRaisesRegex(ValueError, 'Unexpected native field type: /update_time'):
+            native_edit.reject_new_nonempty_fields({'update_time': 123},
+                                                   {'update_time': {'unexpected': 'payload'}})
+        with self.assertRaisesRegex(ValueError, 'Unexpected native field type: /create_time'):
+            native_edit.reject_new_nonempty_fields({'create_time': 123},
+                                                   {'create_time': {'unexpected': 'payload'}})
 
 class SavedPhotoCompanionTests(unittest.TestCase):
     def fixture(self):
@@ -184,14 +324,16 @@ class PublishRecoveryTests(unittest.TestCase):
         self.original = {'root_path': str(self.root), 'draft_ids': 7,
                          'all_draft_store': [{'draft_id': 'existing', 'draft_name': 'untouched'}]}
         j.write(self.root / 'root_meta_info.json', self.original)
-        self.record = {'runtime_profile': 'test-profile', 'target': str(self.target), 'draft_id': 'new-id',
+        test_profile = 'jy14-headless-macos-11.4.2'
+        self.record = {'runtime_profile': test_profile, 'target': str(self.target), 'draft_id': 'new-id',
                        'files': j.files_manifest(self.out / 'draft')}
         helper = SimpleNamespace(
-            _validate_runtime_environment=lambda: {'runtime_profile': 'test-profile'},
+            _validate_runtime_environment=lambda: {'runtime_profile': test_profile},
             _ensure_editor_closed=lambda _: None, _decrypt_metadata_in_memory=j.read_json,
             **{name: getattr(runtime_io, name) for name in (
                 '_snapshot_file', '_parse_strict_json', '_revalidate_snapshot',
                 '_acquire_directory_transaction_lock', '_release_directory_transaction_lock')})
+        self.helper = helper
         for context in (patch.object(j.nd, 'DRAFT_ROOT', self.root),
                         patch.object(j.nd, 'helper', return_value=helper),
                         patch.object(j, 'read_xattrs', return_value={}),
@@ -200,10 +342,11 @@ class PublishRecoveryTests(unittest.TestCase):
             context.start()
             self.addCleanup(context.stop)
 
-    def publish(self, name, resume=False, live=None):
+    def publish(self, name, resume=False, live=None, precommit=None):
         return j.publish(self.out, self.folder / name, resume=resume,
                          verify_build_fn=lambda _: self.record,
-                         verify_live_fn=live or (lambda _: {'status': 'verified'}))
+                         verify_live_fn=live or (lambda _: {'status': 'verified'}),
+                         verify_precommit_fn=precommit)
 
     def failure(self, name):
         return j.read_json(self.folder / name / 'failure.json')
@@ -214,9 +357,19 @@ class PublishRecoveryTests(unittest.TestCase):
                 self.publish('denied')
         self.assertFalse(self.target.exists())
         self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+        self.assertEqual(self.failure('denied')['phase'], 'index_staging')
         self.assertEqual(self.failure('denied')['recovery'], 'publish-after-fixing-cause')
         self.assertTrue(Path(self.failure('denied')['temporary_index']).is_file())
         self.assertEqual(self.publish('retry')['status'], 'created')
+
+    def test_publish_capability_is_enforced_before_live_write(self):
+        self.helper._validate_runtime_environment = lambda: {
+            'runtime_profile': 'jy14-headless-macos-11.4.0'
+        }
+        with self.assertRaisesRegex(ValueError, 'capability publish'):
+            self.publish('capability-denied')
+        self.assertFalse(self.target.exists())
+        self.assertFalse((self.folder / 'capability-denied').exists())
 
     def test_commit_failure_resumes_once_and_preserves_other_entries(self):
         with patch.object(j.os, 'replace', side_effect=OSError('injected commit failure')):
@@ -247,6 +400,25 @@ class PublishRecoveryTests(unittest.TestCase):
         self.assertEqual(self.failure('after-commit')['recovery'], 'inspect-index-and-run-verify')
         self.assertEqual(j.read_json(self.root / 'root_meta_info.json')['draft_ids'], 8)
 
+    def test_edit_candidate_failure_stops_before_index_commit_and_can_resume(self):
+        def rejected(_, target, prepared):
+            self.assertEqual(target, self.target)
+            self.assertTrue(target.is_dir())
+            self.assertEqual(prepared['draft_ids'], 8)
+            self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+            raise ValueError('candidate identity differs')
+        with self.assertRaisesRegex(ValueError, 'candidate identity differs'):
+            self.publish('precommit-rejected', precommit=rejected)
+        self.assertEqual(self.failure('precommit-rejected')['phase'], 'draft_placed')
+        self.assertFalse(self.failure('precommit-rejected')['index_replaced'])
+        self.assertEqual(j.read_json(self.root / 'root_meta_info.json'), self.original)
+        self.assertTrue(self.target.is_dir())
+        seen = []
+        def accepted(_, target, prepared):
+            seen.append((target, prepared['draft_ids']))
+        self.assertEqual(self.publish('precommit-resume', True, precommit=accepted)['status'], 'created')
+        self.assertEqual(seen, [(self.target, 8)])
+
     def test_prepared_index_mutation_is_detected(self):
         def move_and_tamper(source, target):
             source.rename(target)
@@ -271,11 +443,17 @@ class PublishRecoveryTests(unittest.TestCase):
 
 
 class AttributePolicyTests(unittest.TestCase):
-    def test_macl_and_quarantine_changes_remain_blocked(self):
-        for name in ('com.apple.macl', 'com.apple.quarantine'):
+    def test_macl_and_provenance_are_now_tolerated_quarantine_stays_blocked(self):
+        for name, expect_raise in (('com.apple.macl', False), ('com.apple.provenance', False), ('com.apple.quarantine', True)):
             with self.subTest(name=name), patch.object(j, 'write'), patch.object(j.subprocess, 'run'), patch.object(j, 'read_xattrs', return_value={name: b'changed'}):
-                with self.assertRaisesRegex(ValueError, name):
-                    j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                if expect_raise:
+                    with self.assertRaisesRegex(ValueError, name):
+                        j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                else:
+                    try:
+                        j.copy_xattrs({name: b'original'}, Path('/unused'), Path('/audit'))
+                    except ValueError:
+                        self.fail('copy_xattrs raised ValueError for acceptable xattr: ' + name)
 
 
 if __name__ == '__main__':

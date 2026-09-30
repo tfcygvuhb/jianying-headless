@@ -87,13 +87,13 @@ def mask_config(mask):
             'feather': mask.get('feather', 0), 'roundCorner': mask.get('round_corner', 0)}
 
 
-def mask_material(mask, target):
-    node = resources.material('mask/' + mask['shape'], target)
+def mask_material(mask, target, runtime_profile=None):
+    node = resources.material('mask/' + mask['shape'], target, runtime_profile)
     node.update(id=uid(), constant_material_id=uid(), config=mask_config(mask))
     return node
 
 
-def apply(segment, materials, spec, kind, target=None):
+def apply(segment, materials, spec, kind, target=None, runtime_profile=None):
     validate(spec, kind)
     if 'opacity' in spec:
         segment['clip']['alpha'] = spec['opacity']
@@ -113,13 +113,13 @@ def apply(segment, materials, spec, kind, target=None):
             segment['uniform_scale'] = {'on': True, 'value': 1.0}
     if 'mask' in spec:
         require(target is not None, 'Masks need a draft-owned resource target')
-        mask = mask_material(spec['mask'], target)
+        mask = mask_material(spec['mask'], target, runtime_profile)
         materials.setdefault('common_mask', []).append(mask)
         segment.setdefault('extra_material_refs', []).append(mask['id'])
         segment['enable_video_mask'] = True
 
 
-def verify(actual, index, spec, kind, tolerance):
+def verify(actual, index, spec, kind, tolerance, runtime_profile=None):
     animated = set(spec.get('keyframes', {}))
     if 'opacity' in spec and 'opacity' not in animated:
         require(abs(actual['clip'].get('alpha', 1) - spec['opacity']) < 1e-5, 'Opacity changed')
@@ -143,7 +143,8 @@ def verify(actual, index, spec, kind, tolerance):
     if 'mask' in spec:
         masks = [index[r][1] for r in actual.get('extra_material_refs', []) if index[r][0] == 'common_mask']
         require(len(masks) == 1, 'Mask binding changed')
-        wanted = resources.definition('mask/' + spec['mask']['shape'])['material']
+        key = 'mask/' + spec['mask']['shape']
+        wanted = resources.entry_for_runtime(key, resources.definition(key), runtime_profile)['material']
         for field in ('category', 'category_id', 'resource_type', 'resource_id'):
             require(masks[0].get(field) == wanted[field], 'Mask resource identity changed: ' + field)
         require(actual.get('enable_video_mask', True) is True, 'Mask disabled')

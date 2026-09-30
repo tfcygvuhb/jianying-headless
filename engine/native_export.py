@@ -22,10 +22,161 @@ import native_fonts as fonts
 import native_motion as motion
 import native_resources as resources
 import native_compound as compound
-from runtime_profiles import EXPORT_PROFILES, validate_export_profiles
+from runtime_profiles import EXPORT_PROFILES, require_capability, validate_export_profiles
 
 HERE = Path(__file__).resolve().parent
 SCHEMA = 'jy14-native-export/v1'
+
+# Keep an independent allowlist for exact native request ABIs. A future draft
+# profile cannot inherit export access merely by enabling a coarse capability.
+VERIFIED_NATIVE_ABI_PROFILES = frozenset({
+    'jy14-headless-macos-11.5.0',
+    'jy14-headless-macos-11.4.2',
+    'jy14-headless-macos-11.4.0-build481',
+})
+
+# Custom fonts with verified Build 481 GUI persistence and isolated rendering.
+BUILD481_FONT_SHA256 = frozenset({
+    'e110b2fb6248c654878dee87e9805ac0b2afc8fab19099cf92bfe12ea085c028',  # Monaco TTF
+    '525979822591a3447cfc49d943d6f7683508e25543407871c0ed8fed05fd2bd9',  # Arial TTF
+    '7f6bf9cab728febe4ce111bbfbcd16253806dcab0bbe1940ede2782cfc319a72',  # STIXGeneral Italic OTF
+    '154e149bfdd2daf1f9560b8103bc3484c327a4969710339ea9e8b5a1247a0717',  # reviewed STIXGeneral Regular local alias OTF
+})
+BUILD481_KEYFRAME_CHANNELS = {
+    'video': {'x', 'y', 'scale', 'rotation', 'opacity', 'volume'},
+    'text': {'x', 'y', 'scale', 'rotation'},
+    'audio': {'volume'},
+}
+
+
+def require_verified_native_abi(profile_id):
+    if profile_id not in VERIFIED_NATIVE_ABI_PROFILES:
+        raise ValueError(
+            'Native export is disabled for %s: export request ABI evidence is incomplete' % profile_id)
+
+
+def require_build481_export_scope(profile_id, record, timeline):
+    """Permit only Build 481 content that passed repeated native export."""
+    if profile_id != 'jy14-headless-macos-11.4.0-build481':
+        return
+    native_resources = record.get('native_resources') or []
+    accepted_masks = {'mask/circle': 'circle', 'mask/mirror': 'mirror',
+                      'mask/rectangle': 'rectangle', 'mask/star': 'pentagram',
+                      'mask/heart': 'heart', 'mask/line': 'line'}
+    accepted_keys = set(accepted_masks) | {'transition/dissolve', 'effect/light-shake'}
+    j.require(all(isinstance(item, dict) and item.get('key') in accepted_keys
+                  for item in native_resources),
+              'Build 481 native resource is not export-accepted')
+    expected_keys = {item['key'] for item in native_resources}
+    catalog = resources.catalog()['resources']
+    font_assets = fonts.recorded_assets(record)
+    j.require(all(asset['sha256'] in BUILD481_FONT_SHA256 for asset in (font_assets or [])),
+              'Build 481 custom font SHA-256 is not verified')
+    # Full-frame source-label review found an incorrect 8x mapping and source
+    # boundary concerns at 0.1x/0.5x. Other rates await the same review.
+    # Keep only the baseline 1x path until exact rates are requalified.
+    reviewed_speeds = (1.0,)
+    def reviewed_speed(value):
+        return type(value) in (int, float) and math.isfinite(value) and value in reviewed_speeds
+
+    for _, child in compound.graph(timeline):
+        materials = child.get('materials', {})
+        j.require(not materials.get('effects'), 'Build 481 filter/text effects await export acceptance')
+        transitions = materials.get('transitions', [])
+        video_effects = materials.get('video_effects', [])
+        dissolve = catalog['transition/dissolve']['material']
+        shake = catalog['effect/light-shake']['material']
+        j.require(all(isinstance(node, dict) and all(node.get(field) == dissolve[field]
+                      for field in ('type', 'effect_id', 'resource_id', 'third_resource_id', 'is_overlap'))
+                      for node in transitions), 'Build 481 transition identity is not export-accepted')
+        j.require(all(isinstance(node, dict) and all(node.get(field) == shake[field]
+                      for field in ('type', 'effect_id', 'resource_id', 'source_platform', 'apply_target_type'))
+                      for node in video_effects), 'Build 481 video effect identity is not export-accepted')
+        j.require(all(isinstance(node, dict) and node.get('resource_type') in accepted_masks.values()
+                      for node in materials.get('common_mask', [])),
+                  'Build 481 mask shape is not export-accepted')
+        expected_shapes = {accepted_masks[key] for key in expected_keys if key in accepted_masks}
+        actual_shapes = {node['resource_type'] for node in materials.get('common_mask', [])}
+        j.require(actual_shapes == expected_shapes,
+                  'Build 481 mask inventory does not match the timeline')
+        actual_keys = {key for key, shape in accepted_masks.items() if shape in actual_shapes}
+        if transitions:
+            actual_keys.add('transition/dissolve')
+        if video_effects:
+            actual_keys.add('effect/light-shake')
+        j.require(actual_keys == expected_keys, 'Build 481 native resource inventory does not match the timeline')
+        j.require(all('curve_speed' not in node and reviewed_speed(node.get('speed', 1))
+                      for node in materials.get('speeds', [])),
+                  'Build 481 curve speed and unreviewed constant speeds await export acceptance')
+        for track in child.get('tracks', []):
+            track_type = track.get('type')
+            for segment in track.get('segments', []):
+                if segment.get('common_keyframes'):
+                    _validate_build481_keyframes(track_type, segment)
+                elif segment.get('common_keyframes') not in (None, []):
+                    raise ValueError('Build 481 keyframe groups must be a list')
+                if not reviewed_speed(segment.get('speed', 1)):
+                    raise ValueError('Build 481 curve speed and unreviewed constant speeds await export acceptance')
+
+
+def _validate_build481_keyframes(track_type, segment):
+    """Validate the reviewed linear keyframe subset and its 1x local clock."""
+    groups = segment.get('common_keyframes')
+    j.require(track_type in BUILD481_KEYFRAME_CHANNELS and isinstance(groups, list) and groups,
+              'Build 481 keyframes are not verified for this track type')
+    allowed = BUILD481_KEYFRAME_CHANNELS[track_type]
+    duration = segment.get('target_timerange', {}).get('duration')
+    j.require(type(duration) is int and duration > 0, 'Build 481 keyframe segment duration is invalid')
+    speed = segment.get('speed', 1)
+    j.require(type(speed) in (int, float) and speed == 1,
+              'Build 481 keyframes require 1x speed mapping')
+    source_range = segment.get('source_timerange')
+    if source_range is not None:
+        j.require(isinstance(source_range, dict) and type(source_range.get('start')) is int and
+                  source_range['start'] == 0 and type(source_range.get('duration')) is int and
+                  source_range['duration'] == duration,
+                  'Build 481 keyframes require an untrimmed 1x source mapping')
+
+    known_types = {native_type: channel for channel, (native_type, _, _) in motion.KEYFRAMES.items()}
+    seen_channels, seen_group_ids, seen_ids = set(), set(), set()
+    for group in groups:
+        j.require(isinstance(group, dict) and
+                  set(group) == {'id', 'material_id', 'property_type', 'keyframe_list'},
+                  'Build 481 keyframe group shape is unverified')
+        channel = known_types.get(group.get('property_type'))
+        j.require(channel in allowed and channel not in seen_channels and group.get('material_id') == '',
+                  'Build 481 keyframe channel is unverified for this track')
+        group_id = group.get('id')
+        j.require(isinstance(group_id, str) and group_id and group_id not in seen_group_ids,
+                  'Build 481 keyframe group ID is missing or duplicated')
+        seen_group_ids.add(group_id)
+        seen_channels.add(channel)
+        points = group.get('keyframe_list')
+        j.require(isinstance(points, list) and len(points) >= 2,
+                  'Build 481 keyframe groups need at least two points')
+        previous = -1
+        for point in points:
+            j.require(isinstance(point, dict) and set(point) == {
+                'id', 'curveType', 'graphID', 'left_control', 'right_control', 'time_offset', 'values'},
+                'Build 481 keyframe node shape is unverified')
+            identifier = point.get('id')
+            j.require(isinstance(identifier, str) and identifier and identifier not in seen_ids,
+                      'Build 481 keyframe node ID is missing or duplicated')
+            seen_ids.add(identifier)
+            j.require(point.get('curveType') == 'Line' and point.get('graphID') == '' and
+                      point.get('left_control') == {'x': 0.0, 'y': 0.0} and
+                      point.get('right_control') == {'x': 0.0, 'y': 0.0},
+                      'Build 481 keyframes must use verified linear nodes')
+            at = point.get('time_offset')
+            j.require(type(at) is int and previous < at <= duration,
+                      'Build 481 keyframe point times must be ordered within the segment')
+            previous = at
+            values = point.get('values')
+            j.require(isinstance(values, list) and len(values) == 1,
+                      'Build 481 keyframe nodes require exactly one value')
+            j.number(values[0], 'Build 481 keyframe value', *motion.KEYFRAMES[channel][1:])
+        j.require(points[0]['time_offset'] == 0,
+                  'Build 481 keyframes must start at the segment beginning')
 
 
 def captured_mask(node):
@@ -218,6 +369,7 @@ def verified_build(path):
     if record.get('schema') == 'jy14-headless-build/v1':
         record = j.verify_build(path)
     elif record.get('schema') == edit.BUILD_SCHEMA:
+        require_capability(j.nd.doctor()['runtime_profile'], 'existing_edit_publish')
         record = edit.verify_build(path)
     else:
         raise ValueError('Export requires a supported verified headless/edit build')
@@ -389,7 +541,13 @@ def sandbox_profile(out):
 
 def validate_probe(info, settings, duration_us, audio_expected):
     fmt = info.get('format', {})
-    j.require(fmt.get('tags', {}).get('major_brand') in ('isom', 'mp41', 'mp42'),
+    # The native muxer can write a second identical major_brand metadata tag.
+    # ffprobe then joins the two values with ';', although the real ftyp box
+    # still contains one standard MP4 brand.  Reject mixed or unknown values.
+    raw_brand = fmt.get('tags', {}).get('major_brand')
+    brands = raw_brand.split(';') if isinstance(raw_brand, str) else []
+    j.require(brands and all(brand == brands[0] for brand in brands) and
+              brands[0] in ('isom', 'mp41', 'mp42'),
               'Native output is not a standard MP4 container')
     video = [s for s in info.get('streams', []) if s.get('codec_type') == 'video']
     audio = [s for s in info.get('streams', []) if s.get('codec_type') == 'audio']
@@ -422,12 +580,36 @@ def validate_probe(info, settings, duration_us, audio_expected):
             'duration_delta_seconds': round(actual_duration - duration_us / 1_000_000, 6),
             'width': v['width'], 'height': v['height'], 'fps': actual_fps,
             'video_codec': 'h264', 'audio_codec': 'aac' if audio else None,
-            'major_brand': fmt['tags']['major_brand']}
+            'major_brand': brands[0], 'ffprobe_major_brand': raw_brand}
+
+
+def validate_ftyp(path):
+    """Read the container header itself; metadata tags are not authoritative."""
+    with Path(path).open('rb') as source:
+        header = source.read(16)
+    j.require(len(header) == 16 and header[4:8] == b'ftyp' and
+              int.from_bytes(header[:4], 'big') >= 16 and
+              header[8:12] in (b'isom', b'mp41', b'mp42'),
+              'Native output is not a standard MP4 container')
+    return header[8:12].decode('ascii')
 
 
 def run(build, out, bitrate=4_000_000, timeout=600):
     build, record, timeline = verified_build(build)
+    require_verified_native_abi(record.get('runtime_profile'))
+    require_build481_export_scope(record.get('runtime_profile'), record, timeline)
     capabilities = supported_features(timeline)
+    if record.get('runtime_profile') == 'jy14-headless-macos-11.4.0-build481':
+        capabilities.update(content_scope='Build 481 local video, text, audio, pinned Monaco/Arial TTF, STIXGeneral Italic OTF and reviewed Regular alias OTF fonts, linear keyframes, baseline 1x speed only pending full-frame speed review, six geometric masks, pinned dissolve and light-shake',
+                            mask_export='six pinned Build 481 geometric masks')
+        for warning in capabilities['warnings']:
+            if warning['code'] == 'native-dissolve-audio-overlap':
+                warning['message'] = ('Build 481 dissolve video passed native UI and helper rendering; '
+                                      'overlapping source audio still needs listening and level checks.')
+                warning.pop('native_ui_audio_comparison', None)
+            elif warning.get('resource') == 'effect/light-shake':
+                warning['message'] = ('Build 481 light-shake passed native UI cold reopen and rendering '
+                                      'with exact local resource bytes; use within the editor account rights.')
     settings = settings_for(timeline, bitrate, timeout)
     job = Path(out)
     j.require(job.is_absolute() and not job.exists() and not job.is_symlink(), 'Export job must be a new absolute directory')
@@ -492,6 +674,7 @@ def run(build, out, bitrate=4_000_000, timeout=600):
         probe = json.loads(subprocess.check_output(['ffprobe', '-v', 'error', '-show_streams', '-show_format',
                                                     '-of', 'json', str(output)], timeout=60))
         j.write(job / 'ffprobe.json', probe)
+        evidence['ftyp_major_brand'] = validate_ftyp(output)
         audio_expected = any(bool(child['materials'].get('audios')) or any(
             v.get('has_audio', True) for v in child['materials'].get('videos', [])
             if v.get('type') == 'video' and v.get('path')) for _, child in compound.graph(timeline))

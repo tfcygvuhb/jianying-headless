@@ -86,6 +86,18 @@ class PackagingTests(unittest.TestCase):
         with self.assertRaises(io.ApplyError):
             io._snapshot_file(link, 'fixture')
 
+    def test_search_only_directory_traversal_rejects_symlink_component(self):
+        real = self.folder / 'real'
+        real.mkdir()
+        link = self.folder / 'link'
+        link.symlink_to(real, target_is_directory=True)
+        descriptor = io._open_directory_secure(real, 'real directory')
+        os.close(descriptor)
+        with self.assertRaises(io.ApplyError):
+            io._open_directory_secure(link, 'symlinked directory')
+        if sys.platform == 'darwin' and hasattr(os, 'O_SEARCH'):
+            self.assertEqual(io._directory_open_flags() & os.O_SEARCH, os.O_SEARCH)
+
     def test_catalog_relocates_paths_without_changing_resource_identity(self):
         original = json.loads((ROOT / 'engine/native-resource-catalog.json').read_bytes())
         with patch.object(resources.Path, 'home', return_value=self.folder):
@@ -95,6 +107,24 @@ class PackagingTests(unittest.TestCase):
             self.assertTrue(entry['source'].startswith(str(self.folder) + '/'))
             for field in ('files', 'tree_sha256', 'usage'):
                 self.assertEqual(entry.get(field), prior.get(field))
+
+    def test_1142_geometric_mask_manifests_match_captured_identities(self):
+        expected = {
+            'circle': '755f487494e041e0adceaff3c1a747b1238773c071fe3297d1911112cccd3946',
+            'rectangle': 'c8d500f2840e387e372744f6f44e1d2128e29c94df3dc482cf18a8de7d2f0ec6',
+            'line': 'e548c277fb2a6e06739855160a985a676221b19e9c4a65b60c8d75df1aea3c29',
+            'mirror': '36365677e9ef362fdba0a5a9169cd9427c85f3ebecfc16f98c7d17a21bef3977',
+            'star': 'ba3fd7ebd571eba4f3383343eb7b8f6f504dfef8d6477af3bbe49bd8c67f2a8e',
+            'heart': 'd72134d8c23f46d9d2ca3b2d7171908285487f2a1cb69cdb57593d427e422936',
+        }
+        catalog = resources.catalog()
+        self.assertEqual(catalog['runtime_profile'], 'jy14-headless-macos-11.4.2')
+        for shape, fingerprint in expected.items():
+            with self.subTest(shape=shape):
+                entry = catalog['resources']['mask/' + shape]
+                self.assertIsInstance(entry['files'], dict)
+                self.assertEqual(entry['tree_sha256'], fingerprint)
+                self.assertEqual(resources.manifest_hash(entry['files']), fingerprint)
 
     def test_catalog_home_traversal_is_rejected(self):
         bad = self.folder / 'native-resource-catalog.json'
